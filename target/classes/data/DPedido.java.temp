@@ -1,0 +1,102 @@
+    /**
+     * Obtiene pedidos por email de usuario
+     */
+    public List<String[]> getByClienteEmail(String email) throws SQLException {
+        List<String[]> pedidos = new ArrayList<>();
+        String query = "SELECT p.id, p.fecha, p.descripcion, p.importe_total, p.importe_total_desc, " +
+                      "p.estado, p.metodo_pago_id, p.usuario_id, " +
+                      "mp.nombre as metodo_pago, u.nombre as usuario " +
+                      "FROM pedido p " +
+                      "INNER JOIN metodo_pago mp ON p.metodo_pago_id = mp.id " +
+                      "INNER JOIN usuario u ON p.usuario_id = u.id " +
+                      "WHERE u.email = ? " +
+                      "ORDER BY p.fecha DESC";
+        
+        try (PreparedStatement ps = connection.connect().prepareStatement(query)) {
+            ps.setString(1, email);
+            
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    pedidos.add(new String[]{
+                        String.valueOf(rs.getInt("id")),
+                        rs.getString("fecha"),
+                        rs.getString("descripcion"),
+                        String.valueOf(rs.getDouble("importe_total")),
+                        String.valueOf(rs.getDouble("importe_total_desc")),
+                        rs.getString("estado"),
+                        String.valueOf(rs.getInt("metodo_pago_id")),
+                        String.valueOf(rs.getInt("usuario_id")),
+                        rs.getString("metodo_pago"),
+                        rs.getString("usuario")
+                    });
+                }
+            }
+        }
+        return pedidos;
+    }
+    
+    /**
+     * Obtiene pedidos pendientes de envío
+     */
+    public List<String[]> getPedidosPendientesEnvio() throws SQLException {
+        List<String[]> pedidos = new ArrayList<>();
+        String query = "SELECT p.id, p.fecha, p.descripcion, p.importe_total, p.importe_total_desc, " +
+                      "p.estado, p.metodo_pago_id, p.usuario_id, " +
+                      "mp.nombre as metodo_pago, u.nombre as usuario " +
+                      "FROM pedido p " +
+                      "INNER JOIN metodo_pago mp ON p.metodo_pago_id = mp.id " +
+                      "INNER JOIN usuario u ON p.usuario_id = u.id " +
+                      "WHERE p.estado = 'procesando' " +
+                      "ORDER BY p.fecha DESC";
+        
+        try (PreparedStatement ps = connection.connect().prepareStatement(query);
+             ResultSet rs = ps.executeQuery()) {
+            
+            while (rs.next()) {
+                pedidos.add(new String[]{
+                    String.valueOf(rs.getInt("id")),
+                    rs.getString("fecha"),
+                    rs.getString("descripcion"),
+                    String.valueOf(rs.getDouble("importe_total")),
+                    String.valueOf(rs.getDouble("importe_total_desc")),
+                    rs.getString("estado"),
+                    String.valueOf(rs.getInt("metodo_pago_id")),
+                    String.valueOf(rs.getInt("usuario_id")),
+                    rs.getString("metodo_pago"),
+                    rs.getString("usuario")
+                });
+            }
+        }
+        return pedidos;
+    }
+    
+    /**
+     * Actualiza el estado de un pedido
+     */
+    public List<String[]> updateEstado(int id, String estado) throws SQLException {
+        List<String[]> pedidos = new ArrayList<>();
+        String query = "UPDATE pedido SET estado = ? WHERE id = ? " +
+                      "RETURNING id, fecha, descripcion, importe_total, importe_total_desc, " +
+                      "estado, metodo_pago_id, usuario_id";
+        
+        try (PreparedStatement ps = connection.connect().prepareStatement(query)) {
+            ps.setString(1, estado);
+            ps.setInt(2, id);
+            
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    pedidos.add(new String[]{
+                        String.valueOf(rs.getInt("id")),
+                        rs.getString("fecha"),
+                        rs.getString("descripcion"),
+                        String.valueOf(rs.getDouble("importe_total")),
+                        String.valueOf(rs.getDouble("importe_total_desc")),
+                        rs.getString("estado"),
+                        String.valueOf(rs.getInt("metodo_pago_id")),
+                        String.valueOf(rs.getInt("usuario_id"))
+                    });
+                }
+            }
+        }
+        return pedidos;
+    }
