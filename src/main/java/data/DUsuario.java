@@ -137,7 +137,7 @@ public class DUsuario {
      */
     public List<String[]> findByEmail(String email) throws SQLException {
         List<String[]> result = new ArrayList<>();
-        String sql = "SELECT * FROM \"user\" WHERE email = ?";
+        String sql = "SELECT id, rol_id, nombre, celular, email, genero, password FROM usuario WHERE email = ?";
         
         try (Connection conn = connection.connect();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -146,14 +146,14 @@ public class DUsuario {
             ResultSet rs = stmt.executeQuery();
             
             while (rs.next()) {
-                String[] row = new String[7]; // id, nombre, celular, email, password, estado
+                String[] row = new String[7]; // id, rol_id, nombre, celular, email, genero, password
                 row[0] = String.valueOf(rs.getInt("id"));
-                row[1] = rs.getString("nombre");
-                row[2] = rs.getString("apellido");
-                row[3] = rs.getString("email");
-                row[4] = rs.getString("telefono");
-                row[5] = rs.getString("password");
-                row[6] = rs.getString("estado");
+                row[1] = String.valueOf(rs.getInt("rol_id")); // ROL_ID en posición 1
+                row[2] = rs.getString("nombre");
+                row[3] = rs.getString("celular");
+                row[4] = rs.getString("email");
+                row[5] = rs.getString("genero");
+                row[6] = rs.getString("password");
                 result.add(row);
             }
         }

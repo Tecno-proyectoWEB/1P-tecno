@@ -327,9 +327,10 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
                     return;
                 }*/
                 
+                /*
                 // El usuario existe, verificar si tiene registro de cliente
                 List<String[]> userData = nUsuario.findByEmail(userEmail);
-                /*if (!userData.isEmpty()) {
+                if (!userData.isEmpty()) {
                     int userId = Integer.parseInt(userData.get(0)[0]); // Obtener el ID del usuario
                     
                     if (!nUsuario.isCliente(userId)) {
@@ -351,59 +352,112 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
                 }*/
                 
                 System.out.println("=== USUARIO AUTORIZADO - MOSTRANDO AYUDA ===");
-                // El usuario existe y tiene registro de cliente, mostrar ayuda completa
+                
+                // Detectar el rol del usuario
+                List<String[]> userData = nUsuario.findByEmail(event.getSender());
+                int rolId = 0; // 0 = no autenticado, 1 = admin, 2 = cliente, 3 = cajero
+                
+                if (!userData.isEmpty()) {
+                    rolId = Integer.parseInt(userData.get(0)[1]); // rol_id está en la posición 1
+                    System.out.println("=== ROL DETECTADO: " + rolId + " ===");
+                }
+                
                 String[] headers = {"Categoría", "Comando", "Descripción"};
                 ArrayList<String[]> data = new ArrayList<>();
 
-                // Comandos de Registro
-                data.add(new String[]{"Registro", "register &lt;nombre, celular, email, password&gt;", "Registra un nuevo cliente (rol_id=2)"});
-
-                // Usuarios
-                data.add(new String[]{"Usuarios", "usuario get", "Obtiene todos los usuarios"});
-
-                // Promociones
-                data.add(new String[]{"Promociones", "promocion get", "Obtener todas las promociones"});
-
-        // Comandos de Categorías
-        data.add(new String[]{"Categorías", "categoria get", "Obtiene todas las categorías"});
-        
-        // Comandos de Productos
-        data.add(new String[]{"Productos", "producto get", "Obtiene todos los productos"});
-        data.add(new String[]{"Productos", "producto get id &lt;producto_id&gt;", "Obtiene un producto específico por ID"});
-        data.add(new String[]{"Productos", "producto get categoria &lt;categoria_id&gt;", "Obtiene productos de una categoría específica"});
-        
-        // Comandos de Métodos de Pago
-        data.add(new String[]{"Métodos de Pago", "tipopago get", "Obtiene todos los métodos de pago"});
-        
-        // Comandos de Clientes
-        data.add(new String[]{"Clientes", "cliente get", "Obtiene todos los clientes"});
-        
-        // Comandos de Carrito
-        data.add(new String[]{"Carrito", "carrito get", "Obtiene tu carrito activo con productos"});
-        data.add(new String[]{"Carrito", "carrito add &lt;producto_id, cantidad&gt;", "Agrega producto al carrito"});
-        data.add(new String[]{"Carrito", "carrito modify &lt;detalle_id, cantidad&gt;", "Modifica cantidad de producto"});
-        data.add(new String[]{"Carrito", "carrito delete &lt;detalle_id&gt;", "Elimina producto del carrito"});
-
-        // Sistema de Ventas
-        data.add(new String[]{"Nota de Venta", "notaventa get", "Obtiene mis notas de venta"});
-        data.add(new String[]{"Nota de Venta", "notaventa get &lt;id&gt;", "Obtiene una nota de venta específica"});
-        data.add(new String[]{"Nota de Venta", "notaventa productos &lt;id&gt;", "Ver productos comprados en una nota de venta"});
-
-        data.add(new String[]{"Pedido", "pedido get", "Obtiene mis pedidos"});
-        data.add(new String[]{"Pedido", "pedido get &lt;id&gt;", "Obtiene un pedido específico"});
-
-        data.add(new String[]{"Dirección", "direccion get", "Obtiene todas las direcciones"});
-
-        // Comando de Compra Completa
-                        data.add(new String[]{"Compra", "comprar &lt;tipo_pago_id, url_google_maps&gt;", "Realiza compra completa desde carrito"});
+                // ========================================
+                // COMANDOS PARA CLIENTES (rol_id = 2)
+                // ========================================
+                if (rolId == 2) {
+                    System.out.println("=== MOSTRANDO COMANDOS PARA CLIENTE ===");
+                    
+                    // 1. Ver Categorías
+                    data.add(new String[]{"📋 Categorías", "categoria get", "Ver todas las categorías disponibles"});
+                    
+                    // 2. Ver Productos
+                    data.add(new String[]{"🛍️ Productos", "producto get", "Ver todos los productos disponibles"});
+                    data.add(new String[]{"🛍️ Productos", "producto get &lt;id&gt;", "Ver detalles de un producto específico"});
+                    
+                    // 3. Métodos de Pago
+                    data.add(new String[]{"💳 Métodos de Pago", "metodoPago get", "Ver métodos de pago disponibles"});
+                    
+                    // 4. Carrito de Compras
+                    data.add(new String[]{"🛒 Carrito", "carrito get", "Ver tu carrito de compras actual"});
+                    data.add(new String[]{"🛒 Carrito", "carrito add &lt;producto_id, cantidad&gt;", "Agregar producto al carrito"});
+                    data.add(new String[]{"🛒 Carrito", "carrito delete &lt;item_id&gt;", "Eliminar producto del carrito"});
+                    
+                    // 5. Realizar Compra
+                    data.add(new String[]{"💰 Compra", "comprar &lt;metodo_pago_id&gt;", "Finalizar compra del carrito actual"});
+                    
+                    // 6. Ver Pedidos
+                    data.add(new String[]{"📦 Pedidos", "pedido get", "Ver tus pedidos realizados"});
+                    data.add(new String[]{"📦 Pedidos", "pedido get &lt;id&gt;", "Ver detalles de un pedido específico"});
+                    
+                    // 7. Ver Notas de Venta
+                    data.add(new String[]{"🧾 Notas de Venta", "notaventa get", "Ver tus notas de venta"});
+                    data.add(new String[]{"🧾 Notas de Venta", "notaventa get &lt;id&gt;", "Ver detalles de una nota de venta"});
+                    
+                    tableNotifySuccess(event.getSender(), 
+                        "✅ **Comandos disponibles para CLIENTE**\n\n" +
+                        "🛒 **Flujo de compra:**\n" +
+                        "1️⃣ Ver productos → `producto get`\n" +
+                        "2️⃣ Agregar al carrito → `carrito add <producto_id, cantidad>`\n" +
+                        "3️⃣ Verificar carrito → `carrito get`\n" +
+                        "4️⃣ Ver métodos de pago → `metodoPago get`\n" +
+                        "5️⃣ Comprar → `comprar <metodo_pago_id>`\n" +
+                        "6️⃣ Ver compra → `notaventa get`", 
+                        headers, data);
+                    
+                } else {
+                    // ========================================
+                    // COMANDOS PARA ADMIN/CAJERO (rol_id = 1 o 3)
+                    // ========================================
+                    System.out.println("=== MOSTRANDO COMANDOS PARA ADMIN/CAJERO ===");
+                    
+                    // Comandos de Registro
+                    data.add(new String[]{"🔐 Registro", "register &lt;nombre, celular, email, password&gt;", "Registra un nuevo cliente (rol_id=2)"});
+                    
+                    // Categorías - CRUD Completo
+                    data.add(new String[]{"📋 Categorías", "categoria get", "Ver todas las categorías"});
+                    data.add(new String[]{"📋 Categorías", "categoria get &lt;id&gt;", "Ver categoría específica"});
+                    data.add(new String[]{"📋 Categorías", "categoria add &lt;nombre, descripcion&gt;", "Crear nueva categoría"});
+                    data.add(new String[]{"📋 Categorías", "categoria modify &lt;id, nombre, descripcion&gt;", "Modificar categoría"});
+                    data.add(new String[]{"📋 Categorías", "categoria delete &lt;id&gt;", "Eliminar categoría"});
+                    
+                    // Productos - CRUD Completo
+                    data.add(new String[]{"🛍️ Productos", "producto get", "Ver todos los productos"});
+                    data.add(new String[]{"🛍️ Productos", "producto get &lt;id&gt;", "Ver producto específico"});
+                    data.add(new String[]{"🛍️ Productos", "producto add &lt;nombre, precio, imagen, descripcion, categoria_id, stock, stock_minimo&gt;", "Crear nuevo producto"});
+                    data.add(new String[]{"🛍️ Productos", "producto modify &lt;id, nombre, precio, imagen, descripcion, categoria_id, stock, stock_minimo&gt;", "Modificar producto"});
+                    data.add(new String[]{"🛍️ Productos", "producto delete &lt;id&gt;", "Eliminar producto"});
+                    
+                    // Métodos de Pago - CRUD Completo
+                    data.add(new String[]{"💳 Métodos de Pago", "metodoPago get", "Ver todos los métodos de pago"});
+                    data.add(new String[]{"💳 Métodos de Pago", "metodoPago add &lt;nombre, descripcion&gt;", "Crear método de pago"});
+                    data.add(new String[]{"💳 Métodos de Pago", "metodoPago modify &lt;id, nombre, descripcion&gt;", "Modificar método de pago"});
+                    data.add(new String[]{"💳 Métodos de Pago", "metodoPago delete &lt;id&gt;", "Eliminar método de pago"});
+                    
+                    // Usuarios
+                    data.add(new String[]{"👥 Usuarios", "usuario get", "Ver todos los usuarios"});
+                    
+                    // Pedidos
+                    data.add(new String[]{"📦 Pedidos", "pedido get", "Ver todos los pedidos"});
+                    data.add(new String[]{"📦 Pedidos", "pedido get &lt;id&gt;", "Ver pedido específico"});
+                    
+                    // Notas de Venta
+                    data.add(new String[]{"🧾 Notas de Venta", "notaventa get", "Ver todas las notas de venta"});
+                    data.add(new String[]{"🧾 Notas de Venta", "notaventa get &lt;id&gt;", "Ver nota de venta específica"});
+                    data.add(new String[]{"🧾 Notas de Venta", "notaventa modify &lt;id, estado, observaciones&gt;", "Modificar estado de nota de venta"});
+                    
+                    tableNotifySuccess(event.getSender(), 
+                        "✅ **Comandos disponibles para ADMINISTRADOR**\n\n" +
+                        "🔧 **Gestión completa del sistema** (CRUD de productos, categorías, métodos de pago)", 
+                        headers, data);
+                }
 
                 System.out.println("=== ENVIANDO RESPUESTA HELP ===");
                 System.out.println("Filas de datos: " + data.size());
                 System.out.println("Headers: " + headers.length);
-                
-                // Mostrar todos los comandos disponibles de manera organizada
-                tableNotifySuccess(event.getSender(), "✅ **Comandos disponibles** - Acceso autorizado", headers, data);
-                
                 System.out.println("=== HELP ENVIADO EXITOSAMENTE ===");
             }
         } catch (Exception ex) {
