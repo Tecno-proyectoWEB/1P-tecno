@@ -81,7 +81,32 @@ nota_venta {
 
 ## ✅ COMANDOS DISPONIBLES
 
-### **📋 1. CATEGORÍAS**
+### **� 0. REGISTRO**
+```bash
+# Registrar nuevo cliente (crea usuario con rol_id=2 automáticamente)
+register <nombre, celular, email, password>
+Ejemplo: register Juan Pérez, 70012345, juan@email.com, miPassword123
+```
+
+**Detalles:**
+- ✅ Crea automáticamente usuario con `rol_id = 2` (CLIENTE)
+- ✅ Encripta password con BCrypt
+- ✅ Email debe ser único
+- ✅ NO requiere NIT ni género
+- ❌ NO inserta en tabla `cliente` (no existe en esta BD)
+
+**Flujo Interno:**
+```
+1. ✅ Valida formato de email
+2. ✅ Verifica que email no exista
+3. ✅ Encripta password
+4. ✅ INSERT INTO usuario (rol_id, nombre, celular, email, password) VALUES (2, ?, ?, ?, ?)
+5. ✅ Envía confirmación por email
+```
+
+---
+
+### **�📋 1. CATEGORÍAS**
 ```bash
 # Ver todas las categorías
 categoria get
@@ -267,14 +292,6 @@ notaventa get
 ---
 
 ## ❌ FUNCIONALIDADES DESHABILITADAS
-
-### **Tablas que NO existen en la BD:**
-
-```bash
-❌ promocion    → Tabla promocion no existe
-❌ cliente      → Ahora se usa usuario con rol_id=2
-❌ direccion    → Tabla direccion no existe
-```
 
 ### **Comandos Deshabilitados:**
 ```bash

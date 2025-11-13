@@ -356,7 +356,7 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
                 ArrayList<String[]> data = new ArrayList<>();
 
                 // Comandos de Registro
-                data.add(new String[]{"Registro", "register user &lt;nombre, celular, email, genero, password, nit&gt;", "Registra un nuevo usuario y cliente"});
+                data.add(new String[]{"Registro", "register &lt;nombre, celular, email, password&gt;", "Registra un nuevo cliente (rol_id=2)"});
 
                 // Usuarios
                 data.add(new String[]{"Usuarios", "usuario get", "Obtiene todos los usuarios"});
@@ -423,14 +423,12 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
             switch (event.getAction()) {
                 case Token.ADD:
                 case Token.USER:
-                    if (event.getParams() != null && event.getParams().size() >= 6) {
-                        // Comando: register user <nombre, celular, email, genero, password, nit>
+                    if (event.getParams() != null && event.getParams().size() >= 4) {
+                        // Comando: register <nombre, celular, email, password>
                         String nombre = event.getParams().get(0);
                         String celular = event.getParams().get(1);
                         String email = event.getParams().get(2);
-                        String genero = event.getParams().get(3).toLowerCase(); // Normalizar a minúsculas
-                        String password = event.getParams().get(4);
-                        String nit = event.getParams().get(5);
+                        String password = event.getParams().get(3);
                         
                         // Verificar que el email no exista ya
                         if (nUsuario.emailExists(email)) {
@@ -438,37 +436,45 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
                                 "❌ **El email ya está registrado en el sistema.**\n\n" +
                                 "🔐 **Si ya tiene una cuenta, use el comando:**\n" +
                                 "help get\n\n" +
-                                "📧 **Si olvidó su contraseña, contacte al administrador:**\n" +
-                                "• Email: admin@tecnoweb.org.bo");
+                                "📧 **Si olvidó su contraseña, contacte al administrador.**");
                             return;
                         }
                         
-                        // Registrar el usuario y cliente en una sola transacción
-                        List<String[]> userData = nUsuario.registerUserAndCliente(nombre, celular, email, genero, password, nit);
+                        // Registrar el cliente (usuario con rol_id = 2)
+                        List<String[]> userData = nUsuario.registerCliente(nombre, celular, email, password);
                         
-                        simpleNotifySuccess(event.getSender(), 
-                            "✅ **Usuario y Cliente registrados exitosamente**\n\n" +
-                            "📋 **Datos registrados:**\n" +
-                            "• Nombre: " + nombre + "\n" +
-                            "• Email: " + email + "\n" +
-                            "• Celular: " + celular + "\n" +
-                            "• Género: " + genero + " (normalizado)\n" +
-                            "• NIT: " + nit + "\n\n" +
-                            "🔐 **Ahora tiene acceso completo a todos los comandos del sistema.**\n\n" +
-                            "📧 **Use el comando para ver todos los comandos disponibles:**\n" +
-                            "help get");
+                        if (!userData.isEmpty()) {
+                            simpleNotifySuccess(event.getSender(), 
+                                "🎉 **¡Registro exitoso como CLIENTE!**\n\n" +
+                                "📋 **Datos registrados:**\n" +
+                                "• **Nombre:** " + nombre + "\n" +
+                                "• **Email:** " + email + "\n" +
+                                "• **Celular:** " + celular + "\n" +
+                                "• **Rol:** Cliente\n\n" +
+                                "✅ **Ahora puede usar el sistema para:**\n" +
+                                "• Ver productos: `producto get`\n" +
+                                "• Agregar al carrito: `carrito add <producto_id, cantidad>`\n" +
+                                "• Ver su carrito: `carrito get`\n" +
+                                "• Realizar compras: `comprar <metodo_pago_id>`\n\n" +
+                                "📧 **Para ver todos los comandos:**\n" +
+                                "`help get`");
+                        } else {
+                            simpleNotify(event.getSender(), "Error de Registro", 
+                                "❌ **No se pudo completar el registro.**");
+                        }
                         
                     } else {
                         simpleNotify(event.getSender(), "Error de Registro", 
                             "❌ **Parámetros incorrectos.**\n\n" +
                             "📋 **Formato correcto:**\n" +
-                            "register user &lt;nombre, celular, email, genero, password, nit&gt;\n\n" +
+                            "**register &lt;nombre, celular, email, password&gt;**\n\n" +
                             "📧 **Ejemplo:**\n" +
-                            "register user Juan Pérez, 70012345, juan@email.com, masculino, miPassword123, 1234567890\n\n" +
-                            "📝 **Nota:** El género debe ser en minúsculas: masculino, femenino, otro");
+                            "register Juan Pérez, 70012345, juan@email.com, miPassword123\n\n" +
+                            "📝 **Nota:** El registro es automático como CLIENTE (rol_id=2)");
                     }
                     break;
                     
+                /* COMENTADO - Ya no es necesario, el registro crea automáticamente como cliente
                 case Token.MODIFY:
                     if (event.getParams() != null && event.getParams().size() >= 1) {
                         // Comando: register cliente <nit>
@@ -504,7 +510,7 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
                         }
                         
                         // Registrar como cliente
-                        boolean success = nUsuario.registerCliente(userId, nit);
+                        boolean success = nUsuario.registerClienteOld(userId, nit);
                         
                         if (success) {
                             simpleNotifySuccess(event.getSender(), 
@@ -531,13 +537,16 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
                             "register cliente 1234567890");
                     }
                     break;
+                */
                     
                 default:
                     simpleNotify(event.getSender(), "Error de Registro", 
                         "❌ **Comando de registro no reconocido.**\n\n" +
-                        "📋 **Comandos disponibles:**\n" +
-                        "• register user &lt;nombre, celular, email, genero, password, nit&gt;\n" +
-                        "• register cliente &lt;nit&gt;");
+                        "📋 **Formato correcto:**\n" +
+                        "**register &lt;nombre, celular, email, password&gt;**\n\n" +
+                        "📧 **Ejemplo:**\n" +
+                        "register Juan Pérez, 70012345, juan@email.com, miPassword123");
+
                     break;
             }
         } catch (SQLException ex) {
