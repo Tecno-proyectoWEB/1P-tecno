@@ -5,6 +5,7 @@ import data.DDetalleVenta;
 import data.DCarrito;
 import data.DItemCarrito;
 import data.DUsuario;
+import data.DProducto;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -21,6 +22,7 @@ public class NNotaVenta {
     private DCarrito dCarrito;
     private DItemCarrito dItemCarrito;
     private DUsuario dUsuario;
+    private DProducto dProducto;
     
     public NNotaVenta() {
         this.dNotaVenta = new DNotaVenta();
@@ -28,6 +30,7 @@ public class NNotaVenta {
         this.dCarrito = new DCarrito();
         this.dItemCarrito = new DItemCarrito();
         this.dUsuario = new DUsuario();
+        this.dProducto = new DProducto();
     }
     
     /**
@@ -116,14 +119,63 @@ public class NNotaVenta {
         
         int notaVentaId = Integer.parseInt(notaVenta.get(0)[0]);
         
-        // 6. Crear los detalles de venta
+        // 6. Crear los detalles de venta y actualizar stock
+        System.out.println("🔍 DEBUG STOCK: Iniciando creación de detalles de venta y actualización de stock");
+        
         for (String[] detalle : detallesCarrito) {
             int productoId = Integer.parseInt(detalle[2]);
             int cantidad = Integer.parseInt(detalle[3]);
             double precioTotal = Double.parseDouble(detalle[5]); // subtotal correcto
+            String nombreProducto = detalle[6]; // nombre del producto
             
+            System.out.println("🔍 DEBUG STOCK: Procesando producto " + nombreProducto + " (ID: " + productoId + ")");
+            
+            // Crear detalle de venta
             dDetalleVenta.save(notaVentaId, productoId, cantidad, precioTotal);
+            System.out.println("✅ DEBUG STOCK: Detalle de venta creado para " + nombreProducto);
+            
+            // Actualizar stock del producto
+            try {
+                // Obtener stock actual
+                List<String[]> productoActual = dProducto.getById(productoId);
+                if (!productoActual.isEmpty()) {
+                    int stockActual = Integer.parseInt(productoActual.get(0)[6]); // stock está en posición 6
+                    int nuevoStock = stockActual - cantidad;
+                    
+                    System.out.println("🔍 DEBUG STOCK: " + nombreProducto + 
+                                     " - Stock actual: " + stockActual + 
+                                     ", Cantidad vendida: " + cantidad + 
+                                     ", Nuevo stock: " + nuevoStock);
+                    
+                    if (nuevoStock < 0) {
+                        System.err.println("⚠️ ADVERTENCIA STOCK: El stock del producto " + nombreProducto + 
+                                         " quedará negativo (" + nuevoStock + "). Esto puede indicar un problema.");
+                    }
+                    
+                    // Actualizar stock en base de datos
+                    List<String[]> stockActualizado = dProducto.updateStock(productoId, nuevoStock);
+                    
+                    if (!stockActualizado.isEmpty()) {
+                        System.out.println("✅ DEBUG STOCK: Stock actualizado exitosamente para " + nombreProducto + 
+                                         " - Nuevo stock: " + stockActualizado.get(0)[6]);
+                    } else {
+                        System.err.println("❌ ERROR STOCK: No se pudo actualizar el stock del producto " + nombreProducto);
+                        throw new SQLException("Error al actualizar stock del producto: " + nombreProducto);
+                    }
+                } else {
+                    System.err.println("❌ ERROR STOCK: No se encontró el producto con ID: " + productoId);
+                    throw new SQLException("Producto no encontrado para actualizar stock: ID " + productoId);
+                }
+            } catch (SQLException ex) {
+                System.err.println("❌ ERROR CRÍTICO STOCK: Error al actualizar stock del producto " + 
+                                 nombreProducto + " (ID: " + productoId + "): " + ex.getMessage());
+                // Re-lanzar la excepción para que se maneje en el nivel superior
+                throw new SQLException("Error crítico al actualizar stock del producto " + nombreProducto + 
+                                     " (ID: " + productoId + "): " + ex.getMessage(), ex);
+            }
         }
+        
+        System.out.println("✅ DEBUG STOCK: Todos los stocks actualizados exitosamente");
         
         // 7. Desactivar el carrito actual
         dCarrito.updateActivo(carritoId, false);

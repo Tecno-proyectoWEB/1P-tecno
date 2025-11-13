@@ -2152,13 +2152,69 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
                 return;
             }
             
-            // 4. Calcular total del carrito
+            // 4. VERIFICAR STOCK ANTES DE PROCESAR LA COMPRA
+            System.out.println("=== VERIFICANDO STOCK DE TODOS LOS PRODUCTOS EN CARRITO ===");
+            StringBuilder productosConProblema = new StringBuilder();
+            boolean stockSuficiente = true;
+            
+            for (String[] detalle : detallesCarrito) {
+                int productoId = Integer.parseInt(detalle[2]); // producto_almacen_id
+                int cantidadSolicitada = Integer.parseInt(detalle[3]); // cantidad
+                String nombreProducto = detalle[6]; // producto_nombre
+                
+                try {
+                    if (!nProducto.hasEnoughStock(productoId, cantidadSolicitada)) {
+                        stockSuficiente = false;
+                        
+                        // Obtener stock actual del producto
+                        List<String[]> productoInfo = nProducto.getById(productoId);
+                        String stockDisponible = "0";
+                        if (!productoInfo.isEmpty()) {
+                            stockDisponible = productoInfo.get(0)[6]; // stock actual
+                        }
+                        
+                        productosConProblema.append("• **").append(nombreProducto)
+                                           .append(":** Solicitado ").append(cantidadSolicitada)
+                                           .append(", Disponible ").append(stockDisponible)
+                                           .append(" unidades\n");
+                        
+                        System.out.println("❌ STOCK INSUFICIENTE EN COMPRA - Producto: " + nombreProducto + 
+                                         " (ID: " + productoId + "), Solicitado: " + cantidadSolicitada + 
+                                         ", Disponible: " + stockDisponible);
+                    }
+                } catch (SQLException ex) {
+                    stockSuficiente = false;
+                    productosConProblema.append("• **").append(nombreProducto)
+                                       .append(":** Error al verificar stock - ").append(ex.getMessage()).append("\n");
+                    
+                    System.err.println("❌ ERROR AL VERIFICAR STOCK EN COMPRA - Producto: " + nombreProducto + 
+                                     " (ID: " + productoId + "), Error: " + ex.getMessage());
+                }
+            }
+            
+            // Si hay problemas de stock, cancelar la compra
+            if (!stockSuficiente) {
+                System.out.println("❌ COMPRA CANCELADA POR STOCK INSUFICIENTE");
+                simpleNotify(event.getSender(), "❌ Compra Cancelada - Stock Insuficiente", 
+                    "🚫 **No se puede completar la compra debido a stock insuficiente:**\n\n" +
+                    productosConProblema.toString() + "\n" +
+                    "💡 **Soluciones:**\n" +
+                    "• Reduzca las cantidades en su carrito\n" +
+                    "• Elimine productos sin stock: `carrito delete <item_id>`\n" +
+                    "• Consulte productos disponibles: `producto get`\n" +
+                    "• Vea su carrito actual: `carrito get`");
+                return;
+            }
+            
+            System.out.println("✅ STOCK VERIFICADO - Todos los productos tienen stock suficiente");
+            
+            // 5. Calcular total del carrito
             double totalCarrito = 0.0;
             for (String[] detalle : detallesCarrito) {
                 totalCarrito += Double.parseDouble(detalle[5]); // subtotal
             }
             
-            // 5. Crear pedido
+            // 6. Crear pedido
             String descripcion = "Pedido desde carrito - Email: " + event.getSender();
             List<String[]> pedidoData = nPedido.crearPedidoSimple(descripcion, totalCarrito, metodoPagoId, usuarioId);
             
@@ -2170,7 +2226,7 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
             
             int pedidoId = Integer.parseInt(pedidoData.get(0)[0]);
             
-            // 6. Crear nota de venta desde carrito
+            // 7. Crear nota de venta desde carrito
             String observaciones = "Compra realizada - Método de pago ID: " + metodoPagoId;
             List<String[]> notaVenta = nNotaVenta.crearNotaVentaDesdeCarrito(event.getSender(), pedidoId, observaciones);
             
@@ -2182,13 +2238,13 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
             
             int notaVentaId = Integer.parseInt(notaVenta.get(0)[0]);
             
-            // 7. Marcar carrito como inactivo
+            // 8. Marcar carrito como inactivo
             List<String[]> carritoActualizado = nCarrito.updateActivo(carritoId, false);
             if (carritoActualizado.isEmpty()) {
                 System.out.println("⚠️ Advertencia: No se pudo desactivar el carrito");
             }
             
-            // 8. Generar resumen de la compra
+            // 9. Generar resumen de la compra
             StringBuilder resumen = new StringBuilder();
             resumen.append("🎉 **¡Compra realizada exitosamente!**\n\n");
             resumen.append("📋 **Resumen de la compra:**\n");
@@ -2199,11 +2255,32 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
             resumen.append("• **Estado:** Completada ✅\n\n");
             
             resumen.append("🛒 **Productos comprados:**\n");
-            for (String[] detalle : detallesCarrito) {
+            System.out.println("🔍 DEBUG RESUMEN COMPRA: Total de productos en carrito: " + detallesCarrito.size());
+            
+            for (int i = 0; i < detallesCarrito.size(); i++) {
+                String[] detalle = detallesCarrito.get(i);
+                
+                // Debug completo del array
+                System.out.println("🔍 DEBUG PRODUCTO " + (i + 1) + ":");
+                System.out.println("  [0] ID: " + detalle[0]);
+                System.out.println("  [1] Carrito ID: " + detalle[1]);
+                System.out.println("  [2] Producto ID: " + detalle[2]);
+                System.out.println("  [3] Cantidad: " + detalle[3]);
+                System.out.println("  [4] Precio Unitario: " + detalle[4]);
+                System.out.println("  [5] Subtotal: " + detalle[5]);
+                System.out.println("  [6] Nombre Producto: " + detalle[6]);
+                System.out.println("  [7] Descripción: " + detalle[7]);
+                if (detalle.length > 8) {
+                    System.out.println("  [8] Stock: " + detalle[8]);
+                }
+                
                 String nombreProducto = detalle[6];  // producto_nombre
                 String cantidad = detalle[3];        // cantidad
                 String precioUnitario = detalle[4];  // precio_unitario
                 String subtotal = detalle[5];        // subtotal
+                
+                System.out.println("🔍 DEBUG RESUMEN: " + nombreProducto + " x" + cantidad + 
+                                 " (Bs" + precioUnitario + " c/u) = Bs" + subtotal);
                 
                 resumen.append("• ").append(nombreProducto)
                        .append(" x").append(cantidad)
@@ -2572,6 +2649,45 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
                         
                         System.out.println("Producto ID: " + productoId);
                         System.out.println("Cantidad: " + cantidad);
+                        
+                        // VALIDAR STOCK DISPONIBLE ANTES DE AGREGAR AL CARRITO
+                        System.out.println("=== VERIFICANDO STOCK DISPONIBLE ===");
+                        try {
+                            if (!nProducto.hasEnoughStock(productoId, cantidad)) {
+                                // Obtener información del producto para mostrar stock disponible
+                                List<String[]> productoInfo = nProducto.getById(productoId);
+                                if (!productoInfo.isEmpty()) {
+                                    String nombreProducto = productoInfo.get(0)[1]; // nombre del producto
+                                    String stockDisponible = productoInfo.get(0)[6]; // stock actual
+                                    
+                                    System.out.println("❌ STOCK INSUFICIENTE - Producto: " + nombreProducto + 
+                                                     ", Stock disponible: " + stockDisponible + 
+                                                     ", Cantidad solicitada: " + cantidad);
+                                    
+                                    simpleNotify(event.getSender(), "❌ Stock Insuficiente", 
+                                        "🚫 **No hay suficiente stock disponible**\n\n" +
+                                        "📦 **Producto:** " + nombreProducto + "\n" +
+                                        "📊 **Stock disponible:** " + stockDisponible + " unidades\n" +
+                                        "🔢 **Cantidad solicitada:** " + cantidad + " unidades\n\n" +
+                                        "💡 **Sugerencia:** Reduzca la cantidad o consulte disponibilidad con el comando:\n" +
+                                        "producto get " + productoId);
+                                } else {
+                                    System.out.println("❌ PRODUCTO NO ENCONTRADO - ID: " + productoId);
+                                    simpleNotify(event.getSender(), "❌ Producto no encontrado", 
+                                        "🚫 **El producto con ID " + productoId + " no existe.**\n\n" +
+                                        "💡 **Para ver productos disponibles use:** producto get");
+                                }
+                                return;
+                            }
+                            System.out.println("✅ STOCK SUFICIENTE - Continuando con agregar al carrito");
+                        } catch (SQLException ex) {
+                            System.err.println("❌ ERROR AL VERIFICAR STOCK: " + ex.getMessage());
+                            simpleNotify(event.getSender(), "❌ Error de verificación", 
+                                "🚫 **Error al verificar stock del producto.**\n\n" +
+                                "🔧 **Detalles técnicos:** " + ex.getMessage() + "\n\n" +
+                                "💡 **Intente nuevamente o contacte al administrador.**");
+                            return;
+                        }
                         
                         // Obtener el carrito activo
                         System.out.println("Obteniendo carrito activo para usuario: " + usuarioId);
