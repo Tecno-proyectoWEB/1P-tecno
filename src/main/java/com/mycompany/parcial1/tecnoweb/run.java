@@ -19,8 +19,8 @@ public class run {
      * Bandera para cambiar entre servidor SMTP predeterminado y Gmail
      * false = Usa mail.tecnoweb.org.bo (servidor actual)
      * true = Usa smtp.gmail.com (Gmail con las credenciales configuradas)
-     */
-    public static final boolean USE_GMAIL = true;
+     cambia a false el de abajo*/
+    public static final boolean USE_GMAIL = false;
     
     // Credenciales de Gmail (solo se usan si USE_GMAIL = true)
     public static final String GMAIL_USER = "marcodavidtoledo@gmail.com";
