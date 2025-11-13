@@ -189,7 +189,7 @@ public class DUsuario {
     }
     
     public boolean emailExists(String email) throws SQLException {
-        String sql = "SELECT COUNT(*) FROM \"user\" WHERE email = ?";
+        String sql = "SELECT COUNT(*) FROM usuario WHERE email = ?";
         
         try (Connection conn = connection.connect();
              PreparedStatement stmt = conn.prepareStatement(sql)) {

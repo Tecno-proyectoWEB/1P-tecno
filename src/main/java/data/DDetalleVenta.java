@@ -11,7 +11,7 @@ import postgresConecction.SqlConnection;
  */
 public class DDetalleVenta {
     
-    public static final String[] HEADERS = {"id", "nota_venta_id", "producto_almacen_id", "cantidad", "total", "producto_nombre", "producto_descripcion", "precio_venta", "stock"};
+    public static final String[] HEADERS = {"id", "nota_venta_id", "producto_id", "cantidad", "total", "producto_nombre", "producto_descripcion", "precio_unitario"};
     
     private final SqlConnection connection;
     
@@ -24,12 +24,11 @@ public class DDetalleVenta {
      */
     public List<String[]> getAll() throws SQLException {
         List<String[]> detallesVenta = new ArrayList<>();
-        String query = "SELECT dv.id, dv.nota_venta_id, dv.producto_almacen_id, dv.cantidad, dv.total, " +
+        String query = "SELECT dv.id, dv.nota_venta_id, dv.producto_id, dv.cantidad, dv.total, " +
                       "p.nombre as producto_nombre, p.descripcion as producto_descripcion, " +
-                      "pa.precio_venta, pa.stock " +
+                      "p.precio_unitario " +
                       "FROM detalle_venta dv " +
-                      "INNER JOIN producto_almacen pa ON dv.producto_almacen_id = pa.id " +
-                      "INNER JOIN producto p ON pa.producto_id = p.id " +
+                      "INNER JOIN producto p ON dv.producto_id = p.id " +
                       "ORDER BY dv.nota_venta_id, dv.id";
         
         try (PreparedStatement ps = connection.connect().prepareStatement(query);
@@ -39,13 +38,12 @@ public class DDetalleVenta {
                 detallesVenta.add(new String[]{
                     String.valueOf(rs.getInt("id")),
                     String.valueOf(rs.getInt("nota_venta_id")),
-                    String.valueOf(rs.getInt("producto_almacen_id")),
+                    String.valueOf(rs.getInt("producto_id")),
                     String.valueOf(rs.getInt("cantidad")),
                     String.valueOf(rs.getBigDecimal("total")),
                     rs.getString("producto_nombre"),
                     rs.getString("producto_descripcion"),
-                    String.valueOf(rs.getBigDecimal("precio_venta")),
-                    String.valueOf(rs.getInt("stock"))
+                    String.valueOf(rs.getDouble("precio_unitario"))
                 });
             }
         }
@@ -58,12 +56,11 @@ public class DDetalleVenta {
      */
     public List<String[]> getByNotaVentaId(int notaVentaId) throws SQLException {
         List<String[]> detallesVenta = new ArrayList<>();
-        String query = "SELECT dv.id, dv.nota_venta_id, dv.producto_almacen_id, dv.cantidad, dv.total, " +
+        String query = "SELECT dv.id, dv.nota_venta_id, dv.producto_id, dv.cantidad, dv.total, " +
                       "p.nombre as producto_nombre, p.descripcion as producto_descripcion, " +
-                      "pa.precio_venta, pa.stock " +
+                      "p.precio_unitario " +
                       "FROM detalle_venta dv " +
-                      "INNER JOIN producto_almacen pa ON dv.producto_almacen_id = pa.id " +
-                      "INNER JOIN producto p ON pa.producto_id = p.id " +
+                      "INNER JOIN producto p ON dv.producto_id = p.id " +
                       "WHERE dv.nota_venta_id = ? " +
                       "ORDER BY dv.id";
         
@@ -76,13 +73,12 @@ public class DDetalleVenta {
                     detallesVenta.add(new String[]{
                         String.valueOf(rs.getInt("id")),
                         String.valueOf(rs.getInt("nota_venta_id")),
-                        String.valueOf(rs.getInt("producto_almacen_id")),
+                        String.valueOf(rs.getInt("producto_id")),
                         String.valueOf(rs.getInt("cantidad")),
                         String.valueOf(rs.getBigDecimal("total")),
                         rs.getString("producto_nombre"),
                         rs.getString("producto_descripcion"),
-                        String.valueOf(rs.getBigDecimal("precio_venta")),
-                        String.valueOf(rs.getInt("stock"))
+                        String.valueOf(rs.getDouble("precio_unitario"))
                     });
                 }
             }
@@ -96,12 +92,11 @@ public class DDetalleVenta {
      */
     public List<String[]> getById(int id) throws SQLException {
         List<String[]> detallesVenta = new ArrayList<>();
-        String query = "SELECT dv.id, dv.nota_venta_id, dv.producto_almacen_id, dv.cantidad, dv.total, " +
+        String query = "SELECT dv.id, dv.nota_venta_id, dv.producto_id, dv.cantidad, dv.total, " +
                       "p.nombre as producto_nombre, p.descripcion as producto_descripcion, " +
-                      "pa.precio_venta, pa.stock " +
+                      "p.precio_unitario " +
                       "FROM detalle_venta dv " +
-                      "INNER JOIN producto_almacen pa ON dv.producto_almacen_id = pa.id " +
-                      "INNER JOIN producto p ON pa.producto_id = p.id " +
+                      "INNER JOIN producto p ON dv.producto_id = p.id " +
                       "WHERE dv.id = ?";
         
         try (PreparedStatement ps = connection.connect().prepareStatement(query)) {
@@ -113,13 +108,12 @@ public class DDetalleVenta {
                     detallesVenta.add(new String[]{
                         String.valueOf(rs.getInt("id")),
                         String.valueOf(rs.getInt("nota_venta_id")),
-                        String.valueOf(rs.getInt("producto_almacen_id")),
+                        String.valueOf(rs.getInt("producto_id")),
                         String.valueOf(rs.getInt("cantidad")),
                         String.valueOf(rs.getBigDecimal("total")),
                         rs.getString("producto_nombre"),
                         rs.getString("producto_descripcion"),
-                        String.valueOf(rs.getBigDecimal("precio_venta")),
-                        String.valueOf(rs.getInt("stock"))
+                        String.valueOf(rs.getDouble("precio_unitario"))
                     });
                 }
             }
@@ -131,16 +125,16 @@ public class DDetalleVenta {
     /**
      * Guarda un nuevo detalle de venta
      */
-    public List<String[]> save(int notaVentaId, int productoAlmacenId, int cantidad, double total) throws SQLException {
+    public List<String[]> save(int notaVentaId, int productoId, int cantidad, double total) throws SQLException {
         List<String[]> detallesVenta = new ArrayList<>();
-        String query = "INSERT INTO detalle_venta (nota_venta_id, producto_almacen_id, cantidad, total) " +
+        String query = "INSERT INTO detalle_venta (nota_venta_id, producto_id, cantidad, total) " +
                       "VALUES (?, ?, ?, ?) " +
-                      "RETURNING id, nota_venta_id, producto_almacen_id, cantidad, total";
+                      "RETURNING id, nota_venta_id, producto_id, cantidad, total";
         
         try (PreparedStatement ps = connection.connect().prepareStatement(query)) {
             
             ps.setInt(1, notaVentaId);
-            ps.setInt(2, productoAlmacenId);
+            ps.setInt(2, productoId);
             ps.setInt(3, cantidad);
             ps.setDouble(4, total);
             
@@ -149,7 +143,7 @@ public class DDetalleVenta {
                     detallesVenta.add(new String[]{
                         String.valueOf(rs.getInt("id")),
                         String.valueOf(rs.getInt("nota_venta_id")),
-                        String.valueOf(rs.getInt("producto_almacen_id")),
+                        String.valueOf(rs.getInt("producto_id")),
                         String.valueOf(rs.getInt("cantidad")),
                         String.valueOf(rs.getBigDecimal("total"))
                     });
@@ -167,7 +161,7 @@ public class DDetalleVenta {
         List<String[]> detallesVenta = new ArrayList<>();
         String query = "UPDATE detalle_venta SET cantidad = ?, total = ? " +
                       "WHERE id = ? " +
-                      "RETURNING id, nota_venta_id, producto_almacen_id, cantidad, total";
+                      "RETURNING id, nota_venta_id, producto_id, cantidad, total";
         
         try (PreparedStatement ps = connection.connect().prepareStatement(query)) {
             
@@ -180,7 +174,7 @@ public class DDetalleVenta {
                     detallesVenta.add(new String[]{
                         String.valueOf(rs.getInt("id")),
                         String.valueOf(rs.getInt("nota_venta_id")),
-                        String.valueOf(rs.getInt("producto_almacen_id")),
+                        String.valueOf(rs.getInt("producto_id")),
                         String.valueOf(rs.getInt("cantidad")),
                         String.valueOf(rs.getBigDecimal("total"))
                     });
@@ -215,8 +209,7 @@ public class DDetalleVenta {
                       "SUM(dv.cantidad) as cantidad_total_vendida, " +
                       "COALESCE(SUM(dv.total), 0) as total_ventas " +
                       "FROM detalle_venta dv " +
-                      "INNER JOIN producto_almacen pa ON dv.producto_almacen_id = pa.id " +
-                      "INNER JOIN producto p ON pa.producto_id = p.id " +
+                      "INNER JOIN producto p ON dv.producto_id = p.id " +
                       "GROUP BY p.id, p.nombre " +
                       "ORDER BY total_ventas DESC";
         

@@ -74,6 +74,9 @@ public class Interpreter implements Runnable {
             case Token.TIPOPAGO:
                 IcasoUsoListener.metodoPago(paramsAction);
                 break;
+            case Token.METODOPAGO:
+                IcasoUsoListener.metodoPago(paramsAction);
+                break;
             case Token.CARRITO:
                 IcasoUsoListener.carrito(paramsAction);
                 break;

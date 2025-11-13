@@ -6,7 +6,10 @@
 -- Eliminar tablas existentes si es necesario (en orden inverso por dependencias)
 DROP TABLE IF EXISTS detalle_devolucion CASCADE;
 DROP TABLE IF EXISTS devolucion CASCADE;
+DROP TABLE IF EXISTS detalle_venta CASCADE;
 DROP TABLE IF EXISTS detalle_pedido CASCADE;
+DROP TABLE IF EXISTS nota_venta CASCADE;
+DROP TABLE IF EXISTS pago CASCADE;
 DROP TABLE IF EXISTS detalle_pedido_compra CASCADE;
 DROP TABLE IF EXISTS pedido CASCADE;
 DROP TABLE IF EXISTS compra CASCADE;
@@ -236,6 +239,19 @@ CREATE TABLE pedido (
     CONSTRAINT fk_pedido_usuario FOREIGN KEY (usuario_id) REFERENCES usuario(id)
 );
 
+-- Tabla: pago
+CREATE TABLE pago (
+    id BIGSERIAL PRIMARY KEY,
+    pedido_id BIGINT NOT NULL,
+    fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    monto DOUBLE PRECISION NOT NULL,
+    tipo_pago VARCHAR(50),
+    estado BOOLEAN DEFAULT TRUE,
+    metodo_pago_id BIGINT NOT NULL,
+    CONSTRAINT fk_pago_pedido FOREIGN KEY (pedido_id) REFERENCES pedido(id) ON DELETE CASCADE,
+    CONSTRAINT fk_pago_metodo_pago FOREIGN KEY (metodo_pago_id) REFERENCES metodo_pago(id)
+);
+
 -- Tabla: detalle_pedido
 CREATE TABLE detalle_pedido (
     id BIGSERIAL PRIMARY KEY,
@@ -248,6 +264,30 @@ CREATE TABLE detalle_pedido (
     precio_unitario DOUBLE PRECISION,
     CONSTRAINT fk_detalle_pedido_producto FOREIGN KEY (producto_id) REFERENCES producto(id),
     CONSTRAINT fk_detalle_pedido_pedido FOREIGN KEY (pedido_id) REFERENCES pedido(id) ON DELETE CASCADE
+);
+
+-- Tabla: nota_venta
+CREATE TABLE nota_venta (
+    id BIGSERIAL PRIMARY KEY,
+    usuario_id BIGINT NOT NULL,
+    pedido_id BIGINT,
+    fecha DATE NOT NULL,
+    total DOUBLE PRECISION NOT NULL,
+    estado VARCHAR(50) DEFAULT 'pendiente',
+    observaciones TEXT,
+    CONSTRAINT fk_nota_venta_usuario FOREIGN KEY (usuario_id) REFERENCES usuario(id),
+    CONSTRAINT fk_nota_venta_pedido FOREIGN KEY (pedido_id) REFERENCES pedido(id) ON DELETE SET NULL
+);
+
+-- Tabla: detalle_venta
+CREATE TABLE detalle_venta (
+    id BIGSERIAL PRIMARY KEY,
+    nota_venta_id BIGINT NOT NULL,
+    producto_id BIGINT NOT NULL,
+    cantidad INTEGER NOT NULL,
+    total DOUBLE PRECISION NOT NULL,
+    CONSTRAINT fk_detalle_venta_nota_venta FOREIGN KEY (nota_venta_id) REFERENCES nota_venta(id) ON DELETE CASCADE,
+    CONSTRAINT fk_detalle_venta_producto FOREIGN KEY (producto_id) REFERENCES producto(id)
 );
 
 -- Tabla: compra
