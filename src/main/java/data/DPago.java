@@ -46,6 +46,36 @@ public class DPago {
         return pagos;
     }
     
+    // Método sobrecargado para usar una conexión existente (para transacciones)
+    public List<String[]> save(Connection conn, int pedidoId, double monto, String tipoPago, int metodoPagoId) throws SQLException {
+        List<String[]> pagos = new ArrayList<>();
+        String query = "INSERT INTO pago (pedido_id, monto, tipo_pago, metodo_pago_id) " +
+                      "VALUES (?, ?, ?, ?) RETURNING id, pedido_id, fecha, monto, tipo_pago, estado, metodo_pago_id";
+        
+        try (PreparedStatement ps = conn.prepareStatement(query)) {
+            ps.setInt(1, pedidoId);
+            ps.setDouble(2, monto);
+            ps.setString(3, tipoPago);
+            ps.setInt(4, metodoPagoId);
+            
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    pagos.add(new String[]{
+                        String.valueOf(rs.getInt("id")),
+                        String.valueOf(rs.getInt("pedido_id")),
+                        rs.getString("fecha"),
+                        String.valueOf(rs.getDouble("monto")),
+                        rs.getString("tipo_pago"),
+                        rs.getBoolean("estado") ? "Activo" : "Inactivo",
+                        String.valueOf(rs.getInt("metodo_pago_id")),
+                        dMetodoPago.getNombreById(rs.getInt("metodo_pago_id"))
+                    });
+                }
+            }
+        }
+        return pagos;
+    }
+    
     public List<String[]> getPagosByPedido(int pedidoId) throws SQLException {
         List<String[]> pagos = new ArrayList<>();
         String query = "SELECT p.*, mp.nombre as metodo_pago " +

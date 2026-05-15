@@ -22,6 +22,7 @@ public class Token {
     public static final int CATEGORIA = 113;
     public static final int PRODUCTO = 114;
     public static final int TIPOPAGO = 115;
+    public static final int METODOPAGO = 122;
     public static final int CLIENTE = 116;
     public static final int CARRITO = 117;
     public static final int NOTAVENTA = 118;
@@ -125,6 +126,8 @@ public class Token {
                 return "producto";
             case TIPOPAGO:
                 return "tipopago";
+            case METODOPAGO:
+                return "metodopago";
             case CLIENTE:
                 return "cliente";
             case CARRITO:
@@ -191,6 +194,8 @@ public class Token {
                 return PRODUCTO;
             case "tipopago":
                 return TIPOPAGO;
+            case "metodopago":
+                return METODOPAGO;
             case "cliente":
                 return CLIENTE;
             case "carrito":

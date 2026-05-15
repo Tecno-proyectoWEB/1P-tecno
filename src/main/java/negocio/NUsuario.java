@@ -80,13 +80,28 @@ public class NUsuario {
     }
 
     /**
+     * Registra un nuevo cliente (usuario con rol_id = 2)
+     * @param nombre Nombre del usuario
+     * @param celular Número de celular  
+     * @param email Email del usuario
+     * @param password Contraseña
+     * @return Lista con los datos del usuario registrado
+     * @throws SQLException
+     */
+    public List<String[]> registerCliente(String nombre, String celular, String email, String password) throws SQLException {
+        return dUsuario.registerCliente(nombre, celular, email, password);
+    }
+
+    /**
      * Registra un nuevo cliente asociado a un usuario existente
+     * OBSOLETO: tabla cliente no existe
      * @param userId ID del usuario
      * @param nit Número de Identificación Tributaria
      * @return true si se registró correctamente, false en caso contrario
      * @throws SQLException
      */
-    public boolean registerCliente(int userId, String nit) throws SQLException {
+    @Deprecated
+    public boolean registerClienteOld(int userId, String nit) throws SQLException {
         return dUsuario.registerCliente(userId, nit);
     }
 

@@ -218,7 +218,7 @@ public List<String[]> save(String descripcion, double importeTotal, double impor
         // Crear el pedido
         List<String[]> pedidos = new ArrayList<>();
         String query = "INSERT INTO pedido (fecha, descripcion, importe_total, importe_total_desc, estado, metodo_pago_id, usuario_id) " +
-                      "VALUES (CURRENT_TIMESTAMP, ?, ?, ?, 'pendiente', ?, ?) " +
+                      "VALUES (CURRENT_TIMESTAMP, ?, ?, ?, true, ?, ?) " +
                       "RETURNING id, fecha, descripcion, importe_total, importe_total_desc, estado, metodo_pago_id, usuario_id";
         
         int pedidoId;
@@ -232,13 +232,14 @@ public List<String[]> save(String descripcion, double importeTotal, double impor
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     pedidoId = rs.getInt("id");
+                    boolean estado = rs.getBoolean("estado");
                     pedidos.add(new String[]{
                         String.valueOf(pedidoId),
                         rs.getString("fecha"),
                         rs.getString("descripcion"),
                         String.valueOf(rs.getDouble("importe_total")),
                         String.valueOf(rs.getDouble("importe_total_desc")),
-                        "Activo",
+                        estado ? "Activo" : "Inactivo",
                         String.valueOf(rs.getInt("metodo_pago_id")),
                         String.valueOf(rs.getInt("usuario_id"))
                     });
@@ -248,10 +249,10 @@ public List<String[]> save(String descripcion, double importeTotal, double impor
             }
         }
         
-        // Registrar el pago inicial (50%)
+        // Registrar el pago inicial (50%) usando la misma conexión transaccional
         DPago dPago = new DPago();
         double montoInicial = importeTotalDesc / 2;
-        dPago.save(pedidoId, montoInicial, "INICIAL", metodoPagoId);
+        dPago.save(conn, pedidoId, montoInicial, "INICIAL", metodoPagoId);
         
         conn.commit();
         return pedidos;
@@ -462,13 +463,14 @@ public List<String[]> save(String descripcion, double importeTotal, double impor
             
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
+                    boolean estado = rs.getBoolean("estado");
                     pedidos.add(new String[]{
                         String.valueOf(rs.getInt("id")),
                         rs.getString("fecha"),
                         rs.getString("descripcion"),
                         String.valueOf(rs.getDouble("importe_total")),
                         String.valueOf(rs.getDouble("importe_total_desc")),
-                        rs.getString("estado"),
+                        estado ? "Activo" : "Inactivo",
                         String.valueOf(rs.getInt("metodo_pago_id")),
                         String.valueOf(rs.getInt("usuario_id")),
                         rs.getString("metodo_pago"),

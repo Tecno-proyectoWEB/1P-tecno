@@ -299,9 +299,17 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
 
     @Override
     public void help(ParamsAction event) {
+        System.out.println("\n╔═══════════════════════════════════════════════════════════╗");
+        System.out.println("║              MÉTODO help() EJECUTÁNDOSE                  ║");
+        System.out.println("╚═══════════════════════════════════════════════════════════╝");
+        System.out.println("Sender: " + event.getSender());
+        System.out.println("Action: " + event.getAction());
+        System.out.println("Token.GET: " + Token.GET);
+        
         try {
-            if (event.getAction() == Token.GET) {
-                String userEmail = event.getSender();
+            // El comando "help" no tiene acción específica (action = 0)
+            // Por lo tanto, procesamos el help sin validar la acción
+            String userEmail = event.getSender();
                 
                 // Log para debugging
                 Logger.getLogger(EmailApp.class.getName()).info("Help solicitado por: " + userEmail);
@@ -327,9 +335,10 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
                     return;
                 }*/
                 
+                /*
                 // El usuario existe, verificar si tiene registro de cliente
                 List<String[]> userData = nUsuario.findByEmail(userEmail);
-                /*if (!userData.isEmpty()) {
+                if (!userData.isEmpty()) {
                     int userId = Integer.parseInt(userData.get(0)[0]); // Obtener el ID del usuario
                     
                     if (!nUsuario.isCliente(userId)) {
@@ -351,194 +360,259 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
                 }*/
                 
                 System.out.println("=== USUARIO AUTORIZADO - MOSTRANDO AYUDA ===");
-                // El usuario existe y tiene registro de cliente, mostrar ayuda completa
+                
+                // Detectar el rol del usuario
+                int rolId = 0; // 0 = no autenticado, 1 = admin, 2 = cliente, 3 = cajero
+                
+                try {
+                    System.out.println("=== BUSCANDO USUARIO POR EMAIL: " + event.getSender() + " ===");
+                    List<String[]> userData = nUsuario.findByEmail(event.getSender());
+                    System.out.println("=== RESULTADO BÚSQUEDA: " + (userData != null ? userData.size() : "null") + " registros ===");
+                    
+                    if (!userData.isEmpty()) {
+                        rolId = Integer.parseInt(userData.get(0)[1]); // rol_id está en la posición 1
+                        System.out.println("=== ROL DETECTADO: " + rolId + " ===");
+                    } else {
+                        System.out.println("=== NO SE ENCONTRÓ USUARIO, USANDO ROL 0 (NO AUTENTICADO) ===");
+                    }
+                } catch (Exception e) {
+                    System.err.println("=== ERROR AL BUSCAR USUARIO: " + e.getMessage() + " ===");
+                    System.err.println("=== USANDO ROL 0 (NO AUTENTICADO) POR DEFECTO ===");
+                    e.printStackTrace();
+                }
+                
                 String[] headers = {"Categoría", "Comando", "Descripción"};
                 ArrayList<String[]> data = new ArrayList<>();
 
-                // Comandos de Registro
-                data.add(new String[]{"Registro", "register user &lt;nombre, celular, email, genero, password, nit&gt;", "Registra un nuevo usuario y cliente"});
-
-                // Usuarios
-                data.add(new String[]{"Usuarios", "usuario get", "Obtiene todos los usuarios"});
-
-                // Promociones
-                data.add(new String[]{"Promociones", "promocion get", "Obtener todas las promociones"});
-
-        // Comandos de Categorías
-        data.add(new String[]{"Categorías", "categoria get", "Obtiene todas las categorías"});
-        
-        // Comandos de Productos
-        data.add(new String[]{"Productos", "producto get", "Obtiene todos los productos"});
-        data.add(new String[]{"Productos", "producto get id &lt;producto_id&gt;", "Obtiene un producto específico por ID"});
-        data.add(new String[]{"Productos", "producto get categoria &lt;categoria_id&gt;", "Obtiene productos de una categoría específica"});
-        
-        // Comandos de Métodos de Pago
-        data.add(new String[]{"Métodos de Pago", "tipopago get", "Obtiene todos los métodos de pago"});
-        
-        // Comandos de Clientes
-        data.add(new String[]{"Clientes", "cliente get", "Obtiene todos los clientes"});
-        
-        // Comandos de Carrito
-        data.add(new String[]{"Carrito", "carrito get", "Obtiene tu carrito activo con productos"});
-        data.add(new String[]{"Carrito", "carrito add &lt;producto_id, cantidad&gt;", "Agrega producto al carrito"});
-        data.add(new String[]{"Carrito", "carrito modify &lt;detalle_id, cantidad&gt;", "Modifica cantidad de producto"});
-        data.add(new String[]{"Carrito", "carrito delete &lt;detalle_id&gt;", "Elimina producto del carrito"});
-
-        // Sistema de Ventas
-        data.add(new String[]{"Nota de Venta", "notaventa get", "Obtiene mis notas de venta"});
-        data.add(new String[]{"Nota de Venta", "notaventa get &lt;id&gt;", "Obtiene una nota de venta específica"});
-        data.add(new String[]{"Nota de Venta", "notaventa productos &lt;id&gt;", "Ver productos comprados en una nota de venta"});
-
-        data.add(new String[]{"Pedido", "pedido get", "Obtiene mis pedidos"});
-        data.add(new String[]{"Pedido", "pedido get &lt;id&gt;", "Obtiene un pedido específico"});
-
-        data.add(new String[]{"Dirección", "direccion get", "Obtiene todas las direcciones"});
-
-        // Comando de Compra Completa
-                        data.add(new String[]{"Compra", "comprar &lt;tipo_pago_id, url_google_maps&gt;", "Realiza compra completa desde carrito"});
+                // ========================================
+                // USUARIO NO REGISTRADO (rol_id = 0)
+                // ========================================
+                if (rolId == 0) {
+                    System.out.println("=== USUARIO NO REGISTRADO - MOSTRANDO SOLO REGISTER ===");
+                    
+                    simpleNotify(event.getSender(), "🔐 Bienvenido al Sistema TecnoWeb", 
+                        "👋 **¡Hola! Parece que aún no estás registrado.**\n\n" +
+                        "✅ **Para acceder al sistema y poder realizar compras, primero debes registrarte como cliente.**\n\n" +
+                        "📝 **Comando de registro:**\n" +
+                        "`register &lt;nombre, celular, email, password&gt;`\n\n" +
+                        "📋 **Ejemplo:**\n" +
+                        "`register &lt;Juan Pérez, 70012345, juan@email.com, miPassword123&gt;`\n\n" +
+                        "⚠️ **Importante:**\n" +
+                        "• Usa tu email actual para el registro\n" +
+                        "• La contraseña debe ser segura\n" +
+                        "• El registro te asignará automáticamente el rol de Cliente\n\n" +
+                        "📧 **¿Necesitas ayuda?**\n" +
+                        "Contacta al administrador:\n" +
+                        "• Email: admin@tecnoweb.org.bo\n" +
+                        "• Teléfono: +591-2-1234567\n\n" +
+                        "🎉 **Una vez registrado, envía nuevamente `help` para ver todos los comandos disponibles.**");
+                    
+                    System.out.println("=== NOTIFICACIÓN DE REGISTRO ENVIADA ===");
+                    return; // Salir del método sin mostrar más comandos
+                }
+                
+                // ========================================
+                // COMANDOS PARA CLIENTES (rol_id = 2)
+                // ========================================
+                else if (rolId == 2) {
+                    System.out.println("=== MOSTRANDO COMANDOS PARA CLIENTE ===");
+                    
+                    // 1. Ver Categorías
+                    data.add(new String[]{"📋 Categorías", "categoria get", "Ver todas las categorías disponibles"});
+                    
+                    // 2. Ver Productos
+                    data.add(new String[]{"🛍️ Productos", "producto get", "Ver todos los productos disponibles"});
+                    data.add(new String[]{"🛍️ Productos", "producto get &lt;id&gt;", "Ver detalles de un producto específico"});
+                    
+                    // 3. Métodos de Pago
+                    data.add(new String[]{"💳 Métodos de Pago", "metodoPago get", "Ver métodos de pago disponibles"});
+                    
+                    // 4. Carrito de Compras
+                    data.add(new String[]{"🛒 Carrito", "carrito get", "Ver tu carrito de compras actual"});
+                    data.add(new String[]{"🛒 Carrito", "carrito add &lt;producto_id, cantidad&gt;", "Agregar producto al carrito"});
+                    data.add(new String[]{"🛒 Carrito", "carrito delete &lt;item_id&gt;", "Eliminar producto del carrito"});
+                    
+                    // 5. Realizar Compra
+                    data.add(new String[]{"💰 Compra", "comprar &lt;metodo_pago_id&gt;", "Finalizar compra del carrito actual"});
+                    
+                    // 6. Ver Pedidos
+                    data.add(new String[]{"📦 Pedidos", "pedido get", "Ver tus pedidos realizados"});
+                    data.add(new String[]{"📦 Pedidos", "pedido get &lt;id&gt;", "Ver detalles de un pedido específico"});
+                    
+                    // 7. Ver Notas de Venta
+                    data.add(new String[]{"🧾 Notas de Venta", "notaventa get", "Ver tus notas de venta"});
+                    data.add(new String[]{"🧾 Notas de Venta", "notaventa get &lt;id&gt;", "Ver detalles de una nota de venta"});
+                    
+                    System.out.println("=== LLAMANDO tableNotifySuccess PARA CLIENTE ===");
+                    System.out.println("Destinatario: " + event.getSender());
+                    System.out.println("Cantidad de comandos: " + data.size());
+                    
+                    tableNotifySuccess(event.getSender(), 
+                        "✅ **Comandos disponibles para CLIENTE**\n\n" +
+                        "🛒 **Flujo de compra:**\n" +
+                        "1️⃣ Ver productos → `producto get`\n" +
+                        "2️⃣ Agregar al carrito → `carrito add <producto_id, cantidad>`\n" +
+                        "3️⃣ Verificar carrito → `carrito get`\n" +
+                        "4️⃣ Ver métodos de pago → `metodoPago get`\n" +
+                        "5️⃣ Comprar → `comprar <metodo_pago_id>`\n" +
+                        "6️⃣ Ver compra → `notaventa get`", 
+                        headers, data);
+                    
+                    System.out.println("=== tableNotifySuccess LLAMADO EXITOSAMENTE PARA CLIENTE ===");
+                    
+                } else {
+                    // ========================================
+                    // COMANDOS PARA ADMIN/CAJERO (rol_id = 1 o 3)
+                    // ========================================
+                    System.out.println("=== MOSTRANDO COMANDOS PARA ADMIN/CAJERO ===");
+                    
+                    // Comandos de Registro
+                    data.add(new String[]{"🔐 Registro", "register &lt;nombre, celular, email, password&gt;", "Registra un nuevo cliente (rol_id=2)"});
+                    
+                    // Categorías - CRUD Completo
+                    data.add(new String[]{"📋 Categorías", "categoria get", "Ver todas las categorías"});
+                    data.add(new String[]{"📋 Categorías", "categoria get &lt;id&gt;", "Ver categoría específica"});
+                    data.add(new String[]{"📋 Categorías", "categoria add &lt;nombre, descripcion&gt;", "Crear nueva categoría"});
+                    data.add(new String[]{"📋 Categorías", "categoria modify &lt;id, nombre, descripcion&gt;", "Modificar categoría"});
+                    data.add(new String[]{"📋 Categorías", "categoria delete &lt;id&gt;", "Eliminar categoría"});
+                    
+                    // Productos - CRUD Completo
+                    data.add(new String[]{"🛍️ Productos", "producto get", "Ver todos los productos"});
+                    data.add(new String[]{"🛍️ Productos", "producto get &lt;id&gt;", "Ver producto específico"});
+                    data.add(new String[]{"🛍️ Productos", "producto add &lt;nombre, precio, imagen, descripcion, categoria_id, stock, stock_minimo&gt;", "Crear nuevo producto"});
+                    data.add(new String[]{"🛍️ Productos", "producto modify &lt;id, nombre, precio, imagen, descripcion, categoria_id, stock, stock_minimo&gt;", "Modificar producto"});
+                    data.add(new String[]{"🛍️ Productos", "producto delete &lt;id&gt;", "Eliminar producto"});
+                    
+                    // Métodos de Pago - CRUD Completo
+                    data.add(new String[]{"💳 Métodos de Pago", "metodoPago get", "Ver todos los métodos de pago"});
+                    data.add(new String[]{"💳 Métodos de Pago", "metodoPago add &lt;nombre, descripcion&gt;", "Crear método de pago"});
+                    data.add(new String[]{"💳 Métodos de Pago", "metodoPago modify &lt;id, nombre, descripcion&gt;", "Modificar método de pago"});
+                    data.add(new String[]{"💳 Métodos de Pago", "metodoPago delete &lt;id&gt;", "Eliminar método de pago"});
+                    
+                    // Usuarios
+                    data.add(new String[]{"👥 Usuarios", "usuario get", "Ver todos los usuarios"});
+                    
+                    // Pedidos
+                    data.add(new String[]{"📦 Pedidos", "pedido get", "Ver todos los pedidos"});
+                    data.add(new String[]{"📦 Pedidos", "pedido get &lt;id&gt;", "Ver pedido específico"});
+                    
+                    // Notas de Venta
+                    data.add(new String[]{"🧾 Notas de Venta", "notaventa get", "Ver todas las notas de venta"});
+                    data.add(new String[]{"🧾 Notas de Venta", "notaventa get &lt;id&gt;", "Ver nota de venta específica"});
+                    data.add(new String[]{"🧾 Notas de Venta", "notaventa modify &lt;id, estado, observaciones&gt;", "Modificar estado de nota de venta"});
+                    
+                    System.out.println("=== LLAMANDO tableNotifySuccess PARA ADMIN/CAJERO ===");
+                    System.out.println("Destinatario: " + event.getSender());
+                    System.out.println("Cantidad de comandos: " + data.size());
+                    
+                    tableNotifySuccess(event.getSender(), 
+                        "✅ **Comandos disponibles para ADMINISTRADOR**\n\n" +
+                        "🔧 **Gestión completa del sistema** (CRUD de productos, categorías, métodos de pago)", 
+                        headers, data);
+                    
+                    System.out.println("=== tableNotifySuccess LLAMADO EXITOSAMENTE PARA ADMIN ===");
+                }
 
                 System.out.println("=== ENVIANDO RESPUESTA HELP ===");
                 System.out.println("Filas de datos: " + data.size());
                 System.out.println("Headers: " + headers.length);
-                
-                // Mostrar todos los comandos disponibles de manera organizada
-                tableNotifySuccess(event.getSender(), "✅ **Comandos disponibles** - Acceso autorizado", headers, data);
-                
                 System.out.println("=== HELP ENVIADO EXITOSAMENTE ===");
-            }
         } catch (Exception ex) {
+            System.err.println("\n╔═══════════════════════════════════════════════════════════╗");
+            System.err.println("║           ❌ EXCEPCIÓN CAPTURADA EN help()               ║");
+            System.err.println("╚═══════════════════════════════════════════════════════════╝");
             Logger.getLogger(EmailApp.class.getName()).log(Level.SEVERE, 
                 "Error en método help para usuario: " + event.getSender(), ex);
             System.err.println("=== ERROR EN HELP ===");
             System.err.println("Usuario: " + event.getSender());
             System.err.println("Error: " + ex.getMessage());
+            System.err.println("Tipo de error: " + ex.getClass().getName());
             ex.printStackTrace();
             handleError(CONSTRAINTS_ERROR, event.getSender(), Collections.singletonList("Error en help: " + ex.getMessage()));
         }
+        
+        System.out.println("\n╔═══════════════════════════════════════════════════════════╗");
+        System.out.println("║            MÉTODO help() FINALIZANDO                     ║");
+        System.out.println("╚═══════════════════════════════════════════════════════════╝");
     }
 
     @Override
     public void register(ParamsAction event) {
+        System.out.println("\n╔═══════════════════════════════════════════════════════════╗");
+        System.out.println("║            MÉTODO register() EJECUTÁNDOSE                ║");
+        System.out.println("╚═══════════════════════════════════════════════════════════╝");
+        System.out.println("Sender: " + event.getSender());
+        System.out.println("Action: " + event.getAction());
+        System.out.println("Params: " + (event.getParams() != null ? event.getParams().size() : "null"));
+        
         try {
-            switch (event.getAction()) {
-                case Token.ADD:
-                case Token.USER:
-                    if (event.getParams() != null && event.getParams().size() >= 6) {
-                        // Comando: register user <nombre, celular, email, genero, password, nit>
-                        String nombre = event.getParams().get(0);
-                        String celular = event.getParams().get(1);
-                        String email = event.getParams().get(2);
-                        String genero = event.getParams().get(3).toLowerCase(); // Normalizar a minúsculas
-                        String password = event.getParams().get(4);
-                        String nit = event.getParams().get(5);
-                        
-                        // Verificar que el email no exista ya
-                        if (nUsuario.emailExists(email)) {
-                            simpleNotify(event.getSender(), "Error de Registro", 
-                                "❌ **El email ya está registrado en el sistema.**\n\n" +
-                                "🔐 **Si ya tiene una cuenta, use el comando:**\n" +
-                                "help get\n\n" +
-                                "📧 **Si olvidó su contraseña, contacte al administrador:**\n" +
-                                "• Email: admin@tecnoweb.org.bo");
-                            return;
-                        }
-                        
-                        // Registrar el usuario y cliente en una sola transacción
-                        List<String[]> userData = nUsuario.registerUserAndCliente(nombre, celular, email, genero, password, nit);
-                        
-                        simpleNotifySuccess(event.getSender(), 
-                            "✅ **Usuario y Cliente registrados exitosamente**\n\n" +
-                            "📋 **Datos registrados:**\n" +
-                            "• Nombre: " + nombre + "\n" +
-                            "• Email: " + email + "\n" +
-                            "• Celular: " + celular + "\n" +
-                            "• Género: " + genero + " (normalizado)\n" +
-                            "• NIT: " + nit + "\n\n" +
-                            "🔐 **Ahora tiene acceso completo a todos los comandos del sistema.**\n\n" +
-                            "📧 **Use el comando para ver todos los comandos disponibles:**\n" +
-                            "help get");
-                        
-                    } else {
-                        simpleNotify(event.getSender(), "Error de Registro", 
-                            "❌ **Parámetros incorrectos.**\n\n" +
-                            "📋 **Formato correcto:**\n" +
-                            "register user &lt;nombre, celular, email, genero, password, nit&gt;\n\n" +
-                            "📧 **Ejemplo:**\n" +
-                            "register user Juan Pérez, 70012345, juan@email.com, masculino, miPassword123, 1234567890\n\n" +
-                            "📝 **Nota:** El género debe ser en minúsculas: masculino, femenino, otro");
-                    }
-                    break;
-                    
-                case Token.MODIFY:
-                    if (event.getParams() != null && event.getParams().size() >= 1) {
-                        // Comando: register cliente <nit>
-                        String nit = event.getParams().get(0);
-                        String userEmail = event.getSender();
-                        
-                        // Verificar que el usuario existe
-                        if (!nUsuario.emailExists(userEmail)) {
-                            simpleNotify(event.getSender(), "Error de Registro", 
-                                "❌ **Su email no está registrado en el sistema.**\n\n" +
-                                "🔐 **Primero debe registrarse como usuario:**\n" +
-                                "register user &lt;nombre, celular, email, genero, password, nit&gt;");
-                            return;
-                        }
-                        
-                        // Obtener el ID del usuario
-                        List<String[]> userData = nUsuario.findByEmail(userEmail);
-                        if (userData.isEmpty()) {
-                            simpleNotify(event.getSender(), "Error de Registro", 
-                                "❌ **Error al obtener datos del usuario.**");
-                            return;
-                        }
-                        
-                        int userId = Integer.parseInt(userData.get(0)[0]);
-                        
-                        // Verificar que no sea ya cliente
-                        if (nUsuario.isCliente(userId)) {
-                            simpleNotify(event.getSender(), "Error de Registro", 
-                                "⚠️ **Ya está registrado como cliente.**\n\n" +
-                                "🔐 **Use el comando para ver todos los comandos disponibles:**\n" +
-                                "help get");
-                            return;
-                        }
-                        
-                        // Registrar como cliente
-                        boolean success = nUsuario.registerCliente(userId, nit);
-                        
-                        if (success) {
-                            simpleNotifySuccess(event.getSender(), 
-                                "✅ **Cliente registrado exitosamente**\n\n" +
-                                "📋 **Datos registrados:**\n" +
-                                "• NIT: " + nit + "\n" +
-                                "• Email: " + userEmail + "\n\n" +
-                                "🔐 **Ahora tiene acceso completo a todos los comandos.**\n\n" +
-                                "📧 **Use el comando para ver todos los comandos disponibles:**\n" +
-                                "help get");
-                        } else {
-                            simpleNotify(event.getSender(), "Error de Registro", 
-                                "❌ **Error al registrar como cliente.**\n\n" +
-                                "📧 **Contacte al administrador:**\n" +
-                                "• Email: admin@tecnoweb.org.bo");
-                        }
-                        
-                    } else {
-                        simpleNotify(event.getSender(), "Error de Registro", 
-                            "❌ **Parámetros incorrectos.**\n\n" +
-                            "📋 **Formato correcto:**\n" +
-                            "register cliente &lt;nit&gt;\n\n" +
-                            "📧 **Ejemplo:**\n" +
-                            "register cliente 1234567890");
-                    }
-                    break;
-                    
-                default:
+            // El comando "register" puede venir sin acción (action = 0) o con acción ADD/USER
+            // Procesamos en cualquier caso si hay al menos 4 parámetros
+            if (event.getParams() != null && event.getParams().size() >= 4) {
+                // Comando: register <nombre, celular, email, password>
+                String nombre = event.getParams().get(0);
+                String celular = event.getParams().get(1);
+                String email = event.getParams().get(2);
+                String password = event.getParams().get(3);
+                
+                System.out.println("=== PROCESANDO REGISTRO ===");
+                System.out.println("Nombre: " + nombre);
+                System.out.println("Celular: " + celular);
+                System.out.println("Email: " + email);
+                
+                // Verificar que el email no exista ya
+                if (nUsuario.emailExists(email)) {
+                    System.out.println("=== EMAIL YA EXISTE ===");
                     simpleNotify(event.getSender(), "Error de Registro", 
-                        "❌ **Comando de registro no reconocido.**\n\n" +
-                        "📋 **Comandos disponibles:**\n" +
-                        "• register user &lt;nombre, celular, email, genero, password, nit&gt;\n" +
-                        "• register cliente &lt;nit&gt;");
-                    break;
+                        "❌ **El email ya está registrado en el sistema.**\n\n" +
+                        "🔐 **Si ya tiene una cuenta, use el comando:**\n" +
+                        "help\n\n" +
+                        "📧 **Si olvidó su contraseña, contacte al administrador.**");
+                    return;
+                }
+                
+                System.out.println("=== REGISTRANDO USUARIO ===");
+                // Registrar el cliente (usuario con rol_id = 2)
+                List<String[]> userData = nUsuario.registerCliente(nombre, celular, email, password);
+                
+                if (!userData.isEmpty()) {
+                    System.out.println("=== REGISTRO EXITOSO ===");
+                    simpleNotifySuccess(event.getSender(), 
+                        "🎉 **¡Registro exitoso como CLIENTE!**\n\n" +
+                        "📋 **Datos registrados:**\n" +
+                        "• **Nombre:** " + nombre + "\n" +
+                        "• **Email:** " + email + "\n" +
+                        "• **Celular:** " + celular + "\n" +
+                        "• **Rol:** Cliente\n\n" +
+                        "✅ **Ahora puede usar el sistema para:**\n" +
+                        "• Ver productos: `producto get`\n" +
+                        "• Agregar al carrito: `carrito add <producto_id, cantidad>`\n" +
+                        "• Ver su carrito: `carrito get`\n" +
+                        "• Realizar compras: `comprar <metodo_pago_id>`\n\n" +
+                        "📧 **Para ver todos los comandos:**\n" +
+                        "`help`");
+                } else {
+                    System.out.println("=== ERROR EN REGISTRO ===");
+                    simpleNotify(event.getSender(), "Error de Registro", 
+                        "❌ **No se pudo completar el registro.**");
+                }
+                
+            } else {
+                System.out.println("=== PARÁMETROS INSUFICIENTES ===");
+                System.out.println("Parámetros recibidos: " + (event.getParams() != null ? event.getParams().size() : 0));
+                if (event.getParams() != null) {
+                    for (int i = 0; i < event.getParams().size(); i++) {
+                        System.out.println("  Param " + i + ": " + event.getParams().get(i));
+                    }
+                }
+                
+                simpleNotify(event.getSender(), "Error de Registro", 
+                    "❌ **Parámetros incorrectos.**\n\n" +
+                    "📋 **Formato correcto:**\n" +
+                    "**register &lt;nombre, celular, email, password&gt;**\n\n" +
+                    "📧 **Ejemplo:**\n" +
+                    "register Juan Pérez, 70012345, juan@email.com, miPassword123\n\n" +
+                    "📝 **Nota:** El registro es automático como CLIENTE (rol_id=2)");
             }
         } catch (SQLException ex) {
             Logger.getLogger(EmailApp.class.getName()).log(Level.SEVERE, 
@@ -742,7 +816,7 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
             switch (event.getAction()) {
                 case Token.GET:
                     // Headers amigables para el cliente (sin precio_compra e imagen)
-                    String[] clienteHeaders = {"ID", "Código", "Producto", "Precio", "Descripción", "Categoría"};
+                    String[] clienteHeaders = {"ID", "Código", "Producto", "Precio", "Descripción"};
                     
                     if (event.getParams() != null && event.getParams().size() >= 2) {
                         String subcomando = event.getParams().get(0).toLowerCase();
@@ -759,15 +833,6 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
                                     
                                     tableNotifySuccess(event.getSender(), "📦 Producto ID: " + productoId, 
                                         clienteHeaders, (ArrayList<String[]>) productosCliente, event.getCommand());
-                                    
-                                    // Mensaje informativo para producto específico
-                                    simpleNotify(event.getSender(), "💡 Consejo", 
-                                        "🛒 **Para agregar este producto al carrito:**\n\n" +
-                                        "📌 **Comando:** `carrito add " + productoId + ", <cantidad>`\n\n" +
-                                        "📝 **Ejemplo:** `carrito add " + productoId + ", 2` (agrega 2 unidades)\n\n" +
-                                        "🔙 **Ver más productos:**\n" +
-                                        "• `producto get` - Ver catálogo completo\n" +
-                                        "• `producto get categoria <categoria_id>` - Ver por categoría");
                                     
                         } else {
                             simpleNotify(event.getSender(), "Producto no encontrado", 
@@ -810,9 +875,6 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
                                     
                                     tableNotifySuccess(event.getSender(), "📦 Productos - Categoría: " + nombreCategoria, 
                                         clienteHeaders, (ArrayList<String[]>) productosCliente, event.getCommand());
-                                    
-                                    // Mensaje informativo específico para categoría
-                                    mostrarMensajeInformativo(event.getSender(), true);
                                     
                                 } else {
                                     System.out.println("No se encontraron productos en la categoría " + categoriaId);
@@ -872,15 +934,6 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
                                 tableNotifySuccess(event.getSender(), "📦 Producto ID: " + productoId, 
                                     clienteHeaders, (ArrayList<String[]>) productosCliente, event.getCommand());
                                 
-                                // Mensaje informativo para producto específico
-                                simpleNotify(event.getSender(), "💡 Consejo", 
-                                    "🛒 **Para agregar este producto al carrito:**\n\n" +
-                                    "📌 **Comando:** `carrito add " + productoId + ", <cantidad>`\n\n" +
-                                    "📝 **Ejemplo:** `carrito add " + productoId + ", 2` (agrega 2 unidades)\n\n" +
-                                    "🔙 **Ver más productos:**\n" +
-                                    "• `producto get` - Ver catálogo completo\n" +
-                                    "• `producto get categoria <categoria_id>` - Ver por categoría");
-                                
                             } else {
                                 simpleNotify(event.getSender(), "Producto no encontrado", 
                                     "❌ **No se encontró el producto con ID: " + productoId + "**\n\n" +
@@ -914,9 +967,6 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
                             
                             tableNotifySuccess(event.getSender(), "📦 Catálogo de Productos", 
                                 clienteHeaders, (ArrayList<String[]>) productosCliente, event.getCommand());
-                            
-                            // Mensaje informativo general
-                            mostrarMensajeInformativo(event.getSender(), false);
                             
                         } else {
                             simpleNotify(event.getSender(), "No hay productos", 
@@ -1019,15 +1069,6 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
                                 
                                 tableNotifySuccess(event.getSender(), "📦 Producto ID: " + productoId, 
                                     clienteHeadersId, (ArrayList<String[]>) productosCliente, event.getCommand());
-                                
-                                // Mensaje informativo para producto específico
-                                simpleNotify(event.getSender(), "💡 Consejo", 
-                                    "🛒 **Para agregar este producto al carrito:**\n\n" +
-                                    "📌 **Comando:** `carrito add " + productoId + ", <cantidad>`\n\n" +
-                                    "📝 **Ejemplo:** `carrito add " + productoId + ", 2` (agrega 2 unidades)\n\n" +
-                                    "🔙 **Ver más productos:**\n" +
-                                    "• `producto get` - Ver catálogo completo\n" +
-                                    "• `producto get categoria <categoria_id>` - Ver por categoría");
                                 
                             } else {
                                 simpleNotify(event.getSender(), "Producto no encontrado", 
@@ -1258,9 +1299,22 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
     }
 
     private void sendEmail(Email email) {
+        System.out.println("=== ENVIANDO EMAIL (sendEmail) ===");
+        System.out.println("Destinatario: " + email.getTo());
+        System.out.println("Asunto: " + email.getSubject());
+        System.out.println("Modo Gmail activo: " + com.mycompany.parcial1.tecnoweb.run.USE_GMAIL);
+        if (com.mycompany.parcial1.tecnoweb.run.USE_GMAIL) {
+            System.out.println("Servidor SMTP: smtp.gmail.com:" + com.mycompany.parcial1.tecnoweb.run.GMAIL_PORT);
+            System.out.println("Usuario Gmail: " + com.mycompany.parcial1.tecnoweb.run.GMAIL_USER);
+        } else {
+            System.out.println("Servidor SMTP: mail.tecnoweb.org.bo:25");
+        }
+        
         EmailSend sendEmail = new EmailSend(email);
         Thread thread = new Thread(sendEmail);
+        thread.setName("EmailSend-Thread");
         thread.start();
+        System.out.println("Thread de envío iniciado: " + thread.getName());
     }
 
     private void simpleNotify(String email, String title, String message) {
@@ -1432,21 +1486,20 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
                     List<String[]> productosData = dDetalleVenta.getByNotaVentaId(notaVentaId);
                     
                     if (!productosData.isEmpty()) {
-                        // Headers amigables para productos de nota de venta
-                        String[] productosHeaders = {"Detalle ID", "Producto ID", "Cantidad", "Total", "Producto", "Descripción", "Precio Unitario", "Stock"};
+                        // Array: [0]id, [1]nota_venta_id, [2]producto_id, [3]cantidad, [4]total, [5]producto_nombre, [6]producto_descripcion, [7]precio_unitario
+                        String[] productosHeaders = {"Detalle ID", "Producto ID", "Cantidad", "Total", "Producto", "Descripción", "Precio Unitario"};
                         
                         // Filtrar datos para el cliente (quitar nota_venta_id)
                         List<String[]> productosCliente = new ArrayList<>();
                         for (String[] producto : productosData) {
                             productosCliente.add(new String[]{
                                 producto[0], // id → Detalle ID
-                                producto[2], // producto_almacen_id → Producto ID
+                                producto[2], // producto_id → Producto ID
                                 producto[3], // cantidad → Cantidad
-                                producto[4], // total → Total
+                                "Bs " + producto[4], // total → Total
                                 producto[5], // producto_nombre → Producto
                                 producto[6], // producto_descripcion → Descripción
-                                producto[7], // precio_venta → Precio Unitario
-                                producto[8]  // stock → Stock
+                                "Bs " + producto[7]  // precio_unitario → Precio Unitario
                             });
                         }
                         
@@ -1492,8 +1545,8 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
                             List<String[]> notaVentaData = nNotaVenta.getById(id);
                             
                             if (!notaVentaData.isEmpty()) {
-                                // Headers amigables para el cliente (sin cliente_id)
-                                String[] clienteHeaders = {"ID", "Pedido ID", "Fecha", "Total", "Estado", "Observaciones", "NIT", "Cliente", "Email"};
+                                // Array: [0]id, [1]usuario_id, [2]pedido_id, [3]fecha, [4]total, [5]estado, [6]observaciones, [7]nombre, [8]email
+                                String[] clienteHeaders = {"ID", "Pedido ID", "Fecha", "Total", "Estado", "Observaciones", "Cliente", "Email"};
                                 
                                 // Filtrar datos para el cliente (quitar cliente_id)
                                 List<String[]> notaVentaCliente = new ArrayList<>();
@@ -1502,12 +1555,11 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
                                         nota[0], // id → ID
                                         nota[2], // pedido_id → Pedido ID  
                                         nota[3], // fecha → Fecha
-                                        nota[4], // total → Total
+                                        "Bs " + nota[4], // total → Total
                                         nota[5], // estado → Estado
                                         nota[6], // observaciones → Observaciones
-                                        nota[7], // nit → NIT
-                                        nota[8], // nombre → Cliente
-                                        nota[9]  // email → Email
+                                        nota[7], // nombre → Cliente
+                                        nota[8]  // email → Email
                                     });
                                 }
                                 
@@ -1534,35 +1586,26 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
                         List<String[]> notasVenta = nNotaVenta.getByUsuarioEmail(event.getSender());
                         
                         if (!notasVenta.isEmpty()) {
-                            // Headers amigables para el cliente (sin cliente_id)
-                            String[] clienteHeaders = {"ID", "Pedido ID", "Fecha", "Total", "Estado", "Observaciones", "NIT", "Cliente", "Email"};
+                            // Array: [0]id, [1]usuario_id, [2]pedido_id, [3]fecha, [4]total, [5]estado, [6]observaciones, [7]nombre, [8]email
+                            String[] clienteHeaders = {"ID", "Pedido ID", "Fecha", "Total", "Estado", "Cliente", "Email"};
                             
-                            // Filtrar datos para el cliente (quitar cliente_id)
+                            // Filtrar datos para el cliente (quitar cliente_id y observaciones para tabla resumen)
                             List<String[]> notasVentaCliente = new ArrayList<>();
                             for (String[] nota : notasVenta) {
                                 notasVentaCliente.add(new String[]{
                                     nota[0], // id → ID
                                     nota[2], // pedido_id → Pedido ID  
                                     nota[3], // fecha → Fecha
-                                    nota[4], // total → Total
+                                    "Bs " + nota[4], // total → Total
                                     nota[5], // estado → Estado
-                                    nota[6], // observaciones → Observaciones
-                                    nota[7], // nit → NIT
-                                    nota[8], // nombre → Cliente
-                                    nota[9]  // email → Email
+                                    nota[7], // nombre → Cliente
+                                    nota[8]  // email → Email
                                 });
                             }
                             
                             tableNotifySuccess(event.getSender(), "🧾 Mis Notas de Venta", clienteHeaders, (ArrayList<String[]>) notasVentaCliente, event.getCommand());
                             
-                            // Mensaje informativo sobre ver productos de cada nota
-                            simpleNotify(event.getSender(), "💡 Consejo", 
-                                "📦 **Para ver los productos de una nota de venta específica:**\n\n" +
-                                "📌 **Comando:** `notaventa productos <id>`\n\n" +
-                                "📝 **Ejemplo:** `notaventa productos 1` (ve productos de la nota ID 1)\n\n" +
-                                "ℹ️ **Otros comandos útiles:**\n" +
-                                "• `notaventa get <id>` - Ver detalles de una nota específica\n" +
-                                "• `pedido get` - Ver mis pedidos");
+
                         } else {
                             simpleNotify(event.getSender(), "Sin notas de venta", 
                                 "📋 **No tienes notas de venta registradas**\n\n" +
@@ -1703,33 +1746,32 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
                             
                             if (!pedidoData.isEmpty()) {
                                 String[] pedidoInfo = pedidoData.get(0);
-                                
-                                // Determinar estado de entrega más claro
-                                String estadoEntrega = determinarEstadoEntrega(pedidoInfo[4], pedidoInfo[5], pedidoInfo[6]);
+                                // Array: [0]id, [1]fecha, [2]descripcion, [3]importe_total, [4]importe_total_desc, 
+                                //        [5]estado, [6]metodo_pago_id, [7]usuario_id, [8]metodo_pago, [9]usuario
                                 
                                 // Headers simplificados y claros para el cliente
-                                String[] clienteHeaders = {"Pedido #", "Fecha Pedido", "Total", "Estado", "Entrega"};
+                                String[] clienteHeaders = {"Pedido #", "Fecha", "Descripción", "Total", "Estado", "Método Pago"};
                                 
                                 // Datos simplificados centrados en lo que el cliente necesita
                                 List<String[]> pedidoCliente = new ArrayList<>();
                                 pedidoCliente.add(new String[]{
                                     "#" + pedidoInfo[0], // id → Pedido #
-                                    pedidoInfo[2], // fecha → Fecha Pedido
-                                    "Bs" + pedidoInfo[3], // total → Total (con moneda)
-                                    capitalizarEstado(pedidoInfo[4]), // estado → Estado
-                                    estadoEntrega // estado de entrega más claro
+                                    pedidoInfo[1], // fecha → Fecha
+                                    pedidoInfo[2], // descripcion → Descripción
+                                    "Bs " + pedidoInfo[3], // importe_total → Total (con moneda)
+                                    pedidoInfo[5], // estado → Estado (ya convertido)
+                                    pedidoInfo[8] // metodo_pago → Método de Pago
                                 });
                                 
                                 tableNotifySuccess(event.getSender(), "🚚 Detalles del Pedido", clienteHeaders, (ArrayList<String[]>) pedidoCliente, event.getCommand());
                                 
-                                // Información de entrega más clara y relevante
-                                simpleNotify(event.getSender(), "📍 Información de Entrega", 
-                                    "🏠 **Dirección:** " + pedidoInfo[7] + "\n" +
-                                    "📝 **Referencia:** " + (pedidoInfo[10] != null && !pedidoInfo[10].trim().isEmpty() ? pedidoInfo[10] : "Sin referencia específica") + "\n\n" +
-                                    "📊 **Estado del pedido:** " + obtenerDescripcionEstado(pedidoInfo[4]) + "\n\n" +
+                                // Información adicional
+                                simpleNotify(event.getSender(), "📊 Información Adicional", 
+                                    "💰 **Total con descuento:** Bs " + pedidoInfo[4] + "\n" +
+                                    "💳 **Método de pago:** " + pedidoInfo[8] + "\n\n" +
                                     "ℹ️ **Comandos relacionados:**\n" +
                                     "• `pedido get` - Ver todos mis pedidos\n" +
-                                    "• `notaventa get` - Ver mis notas de venta relacionadas");
+                                    "• `notaventa get` - Ver mis notas de venta");
                                 
                             } else {
                                 simpleNotify(event.getSender(), "Pedido no encontrado", 
@@ -1745,35 +1787,23 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
                         
                         if (!pedidos.isEmpty()) {
                             // Headers simplificados y claros para el cliente
-                            String[] clienteHeaders = {"Pedido #", "Fecha", "Total", "Estado", "Dirección"};
+                            String[] clienteHeaders = {"Pedido #", "Fecha", "Descripción", "Total", "Estado"};
                             
                             // Datos simplificados centrados en lo que el cliente necesita
                             List<String[]> pedidosCliente = new ArrayList<>();
                             for (String[] pedido : pedidos) {
                                 pedidosCliente.add(new String[]{
                                     "#" + pedido[0], // id → Pedido #
-                                    pedido[2], // fecha → Fecha
-                                    "Bs" + pedido[3], // total → Total (con moneda)
-                                    capitalizarEstado(pedido[4]), // estado → Estado
-                                    pedido[7] // direccion_nombre → Dirección
+                                    pedido[1], // fecha → Fecha
+                                    pedido[2], // descripcion → Descripción
+                                    "Bs " + pedido[3], // importe_total → Total (con moneda)
+                                    pedido[5] // estado → Estado (ya convertido a Activo/Inactivo)
                                 });
                             }
                             
                             tableNotifySuccess(event.getSender(), "🚚 Historial de Pedidos", clienteHeaders, (ArrayList<String[]>) pedidosCliente, event.getCommand());
                             
-                            // Mensaje informativo más claro
-                            simpleNotify(event.getSender(), "💡 Información Útil", 
-                                "📋 **Para ver detalles completos de un pedido:**\n\n" +
-                                "📌 **Comando:** `pedido get <numero>`\n\n" +
-                                "📝 **Ejemplo:** `pedido get 1` (detalles del pedido #1)\n\n" +
-                                "📊 **Estados de pedidos:**\n" +
-                                "• **Pendiente** - En preparación\n" +
-                                "• **Procesando** - Preparando envío\n" +
-                                "• **Enviado** - En camino a tu dirección\n" +
-                                "• **Entregado** - Completado exitosamente\n\n" +
-                                "ℹ️ **Otros comandos:**\n" +
-                                "• `notaventa get` - Ver facturas de compras\n" +
-                                "• `comprar <tipo_pago_id, url_google_maps>` - Nueva compra");
+
                         } else {
                             simpleNotify(event.getSender(), "Sin pedidos", 
                                 "📋 **No tienes pedidos registrados**\n\n" +
@@ -2122,13 +2152,69 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
                 return;
             }
             
-            // 4. Calcular total del carrito
+            // 4. VERIFICAR STOCK ANTES DE PROCESAR LA COMPRA
+            System.out.println("=== VERIFICANDO STOCK DE TODOS LOS PRODUCTOS EN CARRITO ===");
+            StringBuilder productosConProblema = new StringBuilder();
+            boolean stockSuficiente = true;
+            
+            for (String[] detalle : detallesCarrito) {
+                int productoId = Integer.parseInt(detalle[2]); // producto_almacen_id
+                int cantidadSolicitada = Integer.parseInt(detalle[3]); // cantidad
+                String nombreProducto = detalle[6]; // producto_nombre
+                
+                try {
+                    if (!nProducto.hasEnoughStock(productoId, cantidadSolicitada)) {
+                        stockSuficiente = false;
+                        
+                        // Obtener stock actual del producto
+                        List<String[]> productoInfo = nProducto.getById(productoId);
+                        String stockDisponible = "0";
+                        if (!productoInfo.isEmpty()) {
+                            stockDisponible = productoInfo.get(0)[6]; // stock actual
+                        }
+                        
+                        productosConProblema.append("• **").append(nombreProducto)
+                                           .append(":** Solicitado ").append(cantidadSolicitada)
+                                           .append(", Disponible ").append(stockDisponible)
+                                           .append(" unidades\n");
+                        
+                        System.out.println("❌ STOCK INSUFICIENTE EN COMPRA - Producto: " + nombreProducto + 
+                                         " (ID: " + productoId + "), Solicitado: " + cantidadSolicitada + 
+                                         ", Disponible: " + stockDisponible);
+                    }
+                } catch (SQLException ex) {
+                    stockSuficiente = false;
+                    productosConProblema.append("• **").append(nombreProducto)
+                                       .append(":** Error al verificar stock - ").append(ex.getMessage()).append("\n");
+                    
+                    System.err.println("❌ ERROR AL VERIFICAR STOCK EN COMPRA - Producto: " + nombreProducto + 
+                                     " (ID: " + productoId + "), Error: " + ex.getMessage());
+                }
+            }
+            
+            // Si hay problemas de stock, cancelar la compra
+            if (!stockSuficiente) {
+                System.out.println("❌ COMPRA CANCELADA POR STOCK INSUFICIENTE");
+                simpleNotify(event.getSender(), "❌ Compra Cancelada - Stock Insuficiente", 
+                    "🚫 **No se puede completar la compra debido a stock insuficiente:**\n\n" +
+                    productosConProblema.toString() + "\n" +
+                    "💡 **Soluciones:**\n" +
+                    "• Reduzca las cantidades en su carrito\n" +
+                    "• Elimine productos sin stock: `carrito delete <item_id>`\n" +
+                    "• Consulte productos disponibles: `producto get`\n" +
+                    "• Vea su carrito actual: `carrito get`");
+                return;
+            }
+            
+            System.out.println("✅ STOCK VERIFICADO - Todos los productos tienen stock suficiente");
+            
+            // 5. Calcular total del carrito
             double totalCarrito = 0.0;
             for (String[] detalle : detallesCarrito) {
                 totalCarrito += Double.parseDouble(detalle[5]); // subtotal
             }
             
-            // 5. Crear pedido
+            // 6. Crear pedido
             String descripcion = "Pedido desde carrito - Email: " + event.getSender();
             List<String[]> pedidoData = nPedido.crearPedidoSimple(descripcion, totalCarrito, metodoPagoId, usuarioId);
             
@@ -2140,7 +2226,7 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
             
             int pedidoId = Integer.parseInt(pedidoData.get(0)[0]);
             
-            // 6. Crear nota de venta desde carrito
+            // 7. Crear nota de venta desde carrito
             String observaciones = "Compra realizada - Método de pago ID: " + metodoPagoId;
             List<String[]> notaVenta = nNotaVenta.crearNotaVentaDesdeCarrito(event.getSender(), pedidoId, observaciones);
             
@@ -2152,13 +2238,13 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
             
             int notaVentaId = Integer.parseInt(notaVenta.get(0)[0]);
             
-            // 7. Marcar carrito como inactivo
+            // 8. Marcar carrito como inactivo
             List<String[]> carritoActualizado = nCarrito.updateActivo(carritoId, false);
             if (carritoActualizado.isEmpty()) {
                 System.out.println("⚠️ Advertencia: No se pudo desactivar el carrito");
             }
             
-            // 8. Generar resumen de la compra
+            // 9. Generar resumen de la compra
             StringBuilder resumen = new StringBuilder();
             resumen.append("🎉 **¡Compra realizada exitosamente!**\n\n");
             resumen.append("📋 **Resumen de la compra:**\n");
@@ -2169,11 +2255,32 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
             resumen.append("• **Estado:** Completada ✅\n\n");
             
             resumen.append("🛒 **Productos comprados:**\n");
-            for (String[] detalle : detallesCarrito) {
+            System.out.println("🔍 DEBUG RESUMEN COMPRA: Total de productos en carrito: " + detallesCarrito.size());
+            
+            for (int i = 0; i < detallesCarrito.size(); i++) {
+                String[] detalle = detallesCarrito.get(i);
+                
+                // Debug completo del array
+                System.out.println("🔍 DEBUG PRODUCTO " + (i + 1) + ":");
+                System.out.println("  [0] ID: " + detalle[0]);
+                System.out.println("  [1] Carrito ID: " + detalle[1]);
+                System.out.println("  [2] Producto ID: " + detalle[2]);
+                System.out.println("  [3] Cantidad: " + detalle[3]);
+                System.out.println("  [4] Precio Unitario: " + detalle[4]);
+                System.out.println("  [5] Subtotal: " + detalle[5]);
+                System.out.println("  [6] Nombre Producto: " + detalle[6]);
+                System.out.println("  [7] Descripción: " + detalle[7]);
+                if (detalle.length > 8) {
+                    System.out.println("  [8] Stock: " + detalle[8]);
+                }
+                
                 String nombreProducto = detalle[6];  // producto_nombre
                 String cantidad = detalle[3];        // cantidad
                 String precioUnitario = detalle[4];  // precio_unitario
                 String subtotal = detalle[5];        // subtotal
+                
+                System.out.println("🔍 DEBUG RESUMEN: " + nombreProducto + " x" + cantidad + 
+                                 " (Bs" + precioUnitario + " c/u) = Bs" + subtotal);
                 
                 resumen.append("• ").append(nombreProducto)
                        .append(" x").append(cantidad)
@@ -2462,19 +2569,18 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
                         List<String[]> detallesData = nCarrito.getDetallesCarrito(carritoId);
                         
                         // Mostrar información del carrito con headers amigables para el cliente
-                        String[] carritoHeaders = {"Carrito ID", "Fecha", "Total", "Estado", "NIT", "Cliente", "Email"};
+                        // carritoData contiene: [0]id, [1]usuario_id, [2]fecha_creacion, [3]activo, [4]nombre, [5]email
+                        String[] carritoHeaders = {"Carrito ID", "Fecha", "Activo", "Cliente", "Email"};
                         
                         // Crear datos del carrito sin mostrar cliente_id al cliente
                         List<String[]> carritoClienteData = new ArrayList<>();
                         for (String[] carrito : carritoData) {
                             carritoClienteData.add(new String[]{
                                 carrito[0], // id → Carrito ID
-                                carrito[2], // fecha → Fecha  
-                                carrito[3], // total → Total
-                                carrito[4], // estado → Estado
-                                carrito[5], // nit → NIT
-                                carrito[6], // nombre → Cliente
-                                carrito[7]  // email → Email
+                                carrito[2], // fecha_creacion → Fecha  
+                                carrito[3], // activo → Activo
+                                carrito[4], // nombre → Cliente
+                                carrito[5]  // email → Email
                             });
                         }
                         
@@ -2505,7 +2611,6 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
                             simpleNotify(event.getSender(), "ℹ️ Información sobre IDs", 
                                 "📋 **Explicación de identificadores:**\n\n" +
                                 "🔹 **Detalle ID:** Identificador único de cada producto en tu carrito\n" +
-                                "   • Lo necesitas para modificar cantidad: `carrito modify <detalle_id, nueva_cantidad>`\n" +
                                 "   • Lo necesitas para eliminar: `carrito delete <detalle_id>`\n\n" +
                                 "🔹 **Producto ID:** Identificador del producto en nuestro catálogo\n" +
                                 "   • Es útil para agregar más del mismo producto: `carrito add <producto_id, cantidad>`\n" +
@@ -2544,6 +2649,45 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
                         
                         System.out.println("Producto ID: " + productoId);
                         System.out.println("Cantidad: " + cantidad);
+                        
+                        // VALIDAR STOCK DISPONIBLE ANTES DE AGREGAR AL CARRITO
+                        System.out.println("=== VERIFICANDO STOCK DISPONIBLE ===");
+                        try {
+                            if (!nProducto.hasEnoughStock(productoId, cantidad)) {
+                                // Obtener información del producto para mostrar stock disponible
+                                List<String[]> productoInfo = nProducto.getById(productoId);
+                                if (!productoInfo.isEmpty()) {
+                                    String nombreProducto = productoInfo.get(0)[1]; // nombre del producto
+                                    String stockDisponible = productoInfo.get(0)[6]; // stock actual
+                                    
+                                    System.out.println("❌ STOCK INSUFICIENTE - Producto: " + nombreProducto + 
+                                                     ", Stock disponible: " + stockDisponible + 
+                                                     ", Cantidad solicitada: " + cantidad);
+                                    
+                                    simpleNotify(event.getSender(), "❌ Stock Insuficiente", 
+                                        "🚫 **No hay suficiente stock disponible**\n\n" +
+                                        "📦 **Producto:** " + nombreProducto + "\n" +
+                                        "📊 **Stock disponible:** " + stockDisponible + " unidades\n" +
+                                        "🔢 **Cantidad solicitada:** " + cantidad + " unidades\n\n" +
+                                        "💡 **Sugerencia:** Reduzca la cantidad o consulte disponibilidad con el comando:\n" +
+                                        "producto get " + productoId);
+                                } else {
+                                    System.out.println("❌ PRODUCTO NO ENCONTRADO - ID: " + productoId);
+                                    simpleNotify(event.getSender(), "❌ Producto no encontrado", 
+                                        "🚫 **El producto con ID " + productoId + " no existe.**\n\n" +
+                                        "💡 **Para ver productos disponibles use:** producto get");
+                                }
+                                return;
+                            }
+                            System.out.println("✅ STOCK SUFICIENTE - Continuando con agregar al carrito");
+                        } catch (SQLException ex) {
+                            System.err.println("❌ ERROR AL VERIFICAR STOCK: " + ex.getMessage());
+                            simpleNotify(event.getSender(), "❌ Error de verificación", 
+                                "🚫 **Error al verificar stock del producto.**\n\n" +
+                                "🔧 **Detalles técnicos:** " + ex.getMessage() + "\n\n" +
+                                "💡 **Intente nuevamente o contacte al administrador.**");
+                            return;
+                        }
                         
                         // Obtener el carrito activo
                         System.out.println("Obteniendo carrito activo para usuario: " + usuarioId);
@@ -2624,7 +2768,6 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
                                     "💵 **Subtotal:** Bs" + detalleAgregado[4] + "\n\n" +
                                     "ℹ️ **Comandos útiles:**\n" +
                                     "• `carrito get` - Ver todo tu carrito\n" +
-                                    "• `carrito modify " + detalleAgregado[0] + ", <cantidad>` - Modificar cantidad\n" +
                                     "• `carrito delete " + detalleAgregado[0] + "` - Eliminar este producto");
                             } else {
                                 simpleNotify(event.getSender(), "Error", 
@@ -2647,6 +2790,8 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
                     }
                     break;
                     
+                // COMANDO DESHABILITADO: carrito modify
+                /*
                 case Token.MODIFY:
                     if (event.getParams() != null && event.getParams().size() >= 2) {
                         // Comando: carrito modify <detalle_id, cantidad>
@@ -2687,7 +2832,7 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
                                         detalle[4], // precio_unitario → Precio Unit.
                                         detalle[5], // subtotal → Subtotal
                                         detalle[6], // producto_nombre → Producto
-                                        detalle[7]  // producto_descripcion → Descripción
+                                        detalle[7]  // producto_descripción → Descripción
                                         // Quitamos: detalle[8] (stock) y detalle[9] (precio_venta)
                                     });
                                 }
@@ -2722,6 +2867,7 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
                             "carrito modify 1, 3");
                     }
                     break;
+                */
                     
                 case Token.DELETE:
                     if (event.getParams() != null && event.getParams().size() >= 1) {
@@ -2755,7 +2901,6 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
                         "📋 **Comandos disponibles:**\n" +
                         "• carrito get\n" +
                         "• carrito add &lt;producto_id, cantidad&gt;\n" +
-                        "• carrito modify &lt;detalle_id, cantidad&gt;\n" +
                         "• carrito delete &lt;detalle_id&gt;");
                     break;
             }
@@ -2834,16 +2979,15 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
         List<String[]> productosCliente = new ArrayList<>();
         
         for (String[] producto : productosData) {
-            // Headers originales: {"id", "cod_producto", "nombre", "precio_compra", "precio_venta", "imagen", "descripcion", "categoria"}
-            // Headers cliente:    {"ID", "Código", "Producto", "Precio", "Descripción", "Categoría"}
+            // Headers originales de DProducto: {"id", "nombre", "precio_unitario", "imagen", "descripcion", "nombreCategoria", "stock", "stock_minimo", "tiempo"}
+            // Headers cliente:    {"ID", "Código", "Producto", "Precio", "Descripción"}
             
             productosCliente.add(new String[]{
                 producto[0], // id → ID
-                producto[1], // cod_producto → Código
-                producto[2], // nombre → Producto
-                producto[4], // precio_venta → Precio (salteamos precio_compra)
-                producto[6], // descripcion → Descripción (salteamos imagen)
-                producto[7]  // categoria → Categoría
+                producto[0], // id → Código (usamos ID como código ya que no hay cod_producto)
+                producto[1], // nombre → Producto
+                producto[2], // precio_unitario → Precio
+                producto[4]  // descripcion → Descripción
             });
         }
         
@@ -2870,7 +3014,6 @@ public class EmailApp implements ICasoUsoListener, IEmailListener {
         
         mensaje += "ℹ️ **Otros comandos útiles:**\n" +
                   "• `carrito get` - Ver tu carrito actual\n" +
-                  "• `carrito modify <detalle_id, cantidad>` - Modificar cantidad\n" +
                   "• `carrito delete <detalle_id>` - Eliminar producto del carrito";
         
         simpleNotify(userEmail, "💡 Consejo", mensaje);

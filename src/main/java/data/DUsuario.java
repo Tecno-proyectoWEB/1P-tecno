@@ -137,7 +137,7 @@ public class DUsuario {
      */
     public List<String[]> findByEmail(String email) throws SQLException {
         List<String[]> result = new ArrayList<>();
-        String sql = "SELECT * FROM \"user\" WHERE email = ?";
+        String sql = "SELECT id, rol_id, nombre, celular, email, genero, password FROM usuario WHERE email = ?";
         
         try (Connection conn = connection.connect();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -146,14 +146,14 @@ public class DUsuario {
             ResultSet rs = stmt.executeQuery();
             
             while (rs.next()) {
-                String[] row = new String[7]; // id, nombre, celular, email, password, estado
+                String[] row = new String[7]; // id, rol_id, nombre, celular, email, genero, password
                 row[0] = String.valueOf(rs.getInt("id"));
-                row[1] = rs.getString("nombre");
-                row[2] = rs.getString("apellido");
-                row[3] = rs.getString("email");
-                row[4] = rs.getString("telefono");
-                row[5] = rs.getString("password");
-                row[6] = rs.getString("estado");
+                row[1] = String.valueOf(rs.getInt("rol_id")); // ROL_ID en posición 1
+                row[2] = rs.getString("nombre");
+                row[3] = rs.getString("celular");
+                row[4] = rs.getString("email");
+                row[5] = rs.getString("genero");
+                row[6] = rs.getString("password");
                 result.add(row);
             }
         }
@@ -189,7 +189,7 @@ public class DUsuario {
     }
     
     public boolean emailExists(String email) throws SQLException {
-        String sql = "SELECT COUNT(*) FROM \"user\" WHERE email = ?";
+        String sql = "SELECT COUNT(*) FROM usuario WHERE email = ?";
         
         try (Connection conn = connection.connect();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -206,7 +206,62 @@ public class DUsuario {
     }
 
     /**
+     * Registra un nuevo cliente (usuario con rol_id = 2)
+     * @param nombre Nombre del usuario
+     * @param celular Número de celular
+     * @param email Email del usuario
+     * @param password Contraseña (será encriptada)
+     * @return Lista con los datos del usuario registrado
+     * @throws SQLException
+     */
+    public List<String[]> registerCliente(String nombre, String celular, String email, String password) throws SQLException {
+        // Encriptar la contraseña
+        String hashedPassword = BCrypt.hashpw(password, BCrypt.gensalt());
+        
+        Connection conn = null;
+        try {
+            conn = connection.connect();
+            
+            // Insertar usuario con rol_id = 2 (CLIENTE)
+            String query = "INSERT INTO usuario (rol_id, nombre, celular, email, password) " +
+                          "VALUES (2, ?, ?, ?, ?) " +
+                          "RETURNING id, rol_id, nombre, celular, email";
+            
+            try (PreparedStatement ps = conn.prepareStatement(query)) {
+                ps.setString(1, nombre);
+                ps.setString(2, celular);
+                ps.setString(3, email);
+                ps.setString(4, hashedPassword);
+                
+                ResultSet rs = ps.executeQuery();
+                List<String[]> result = new ArrayList<>();
+                
+                if (rs.next()) {
+                    result.add(new String[]{
+                        String.valueOf(rs.getInt("id")),
+                        String.valueOf(rs.getInt("rol_id")),
+                        rs.getString("nombre"),
+                        rs.getString("celular"),
+                        rs.getString("email")
+                    });
+                }
+                
+                return result;
+            }
+        } finally {
+            if (conn != null) {
+                try {
+                    conn.close();
+                } catch (SQLException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    /**
      * Registra un nuevo usuario y cliente en una sola transacción
+     * OBSOLETO: Usar registerCliente() en su lugar (tabla cliente no existe)
      * @param nombre Nombre del usuario
      * @param celular Número de celular
      * @param email Email del usuario
@@ -216,6 +271,7 @@ public class DUsuario {
      * @return Lista con los datos del usuario registrado
      * @throws SQLException
      */
+    @Deprecated
     public List<String[]> registerUserAndCliente(String nombre, String apellido, String telefono, String email, String password, String nit) throws SQLException {
         // Encripta la contraseña antes de guardarla
         String hashedPassword = BCrypt.hashpw(password, BCrypt.gensalt());
